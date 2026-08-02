@@ -8,7 +8,9 @@
       "url": "https://www.goodnewsnetwork.org",
       "feedUrl": "https://www.goodnewsnetwork.org/feed/",
       "reliability": 0.86,
-      "notes": "Dedicated positive news outlet"
+      "notes": "Dedicated positive news outlet",
+      "enabled": true,
+      "channel": "rss"
     },
     {
       "id": "src-positive-news",
@@ -16,7 +18,9 @@
       "url": "https://www.positive.news",
       "feedUrl": "https://www.positive.news/feed/",
       "reliability": 0.84,
-      "notes": "Constructive journalism"
+      "notes": "Constructive journalism",
+      "enabled": true,
+      "channel": "rss"
     },
     {
       "id": "src-reasons-to-be-cheerful",
@@ -24,7 +28,9 @@
       "url": "https://reasonstobecheerful.world",
       "feedUrl": "https://reasonstobecheerful.world/feed/",
       "reliability": 0.85,
-      "notes": "Solutions journalism"
+      "notes": "Solutions journalism",
+      "enabled": true,
+      "channel": "rss"
     }
   ],
   "articles": [

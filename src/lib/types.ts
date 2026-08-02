@@ -31,6 +31,9 @@ export interface Source {
   feedUrl?: string;
   reliability: number;
   notes?: string;
+  enabled?: boolean;
+  recommendedBy?: string;
+  channel?: "rss" | "website" | "instagram" | "x" | "facebook" | "other";
 }
 
 /** One reporting outlet / URL backing a news item. */

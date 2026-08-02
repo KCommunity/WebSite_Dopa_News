@@ -8,6 +8,12 @@ import {
   createArticleSource,
   getArticleSources,
 } from "./sources";
+import {
+  DEFAULT_WEB_SEARCH_TOPIC,
+  FOCUS_REGIONS,
+  buildRegionalSearchQuery,
+  type FocusRegionId,
+} from "./regions";
 import { getCategoryName } from "./taxonomy";
 import type { Article, ArticleSource, Source } from "./types";
 import { upsertArticles } from "./store";
@@ -27,6 +33,8 @@ export const DEFAULT_SOURCES: Source[] = [
     feedUrl: "https://www.goodnewsnetwork.org/feed/",
     reliability: 0.86,
     notes: "Dedicated positive news outlet",
+    enabled: true,
+    channel: "rss",
   },
   {
     id: "src-positive-news",
@@ -35,6 +43,8 @@ export const DEFAULT_SOURCES: Source[] = [
     feedUrl: "https://www.positive.news/feed/",
     reliability: 0.84,
     notes: "Constructive journalism",
+    enabled: true,
+    channel: "rss",
   },
   {
     id: "src-reasons-to-be-cheerful",
@@ -43,6 +53,8 @@ export const DEFAULT_SOURCES: Source[] = [
     feedUrl: "https://reasonstobecheerful.world/feed/",
     reliability: 0.85,
     notes: "Solutions journalism",
+    enabled: true,
+    channel: "rss",
   },
 ];
 
@@ -138,6 +150,7 @@ export async function collectFromSources(sources: Source[] = DEFAULT_SOURCES): P
   const candidates: Article[] = [];
 
   for (const source of sources) {
+    if (source.enabled === false) continue;
     if (!source.feedUrl) continue;
 
     try {
@@ -182,75 +195,113 @@ export async function collectFromSources(sources: Source[] = DEFAULT_SOURCES): P
   return { fetched, accepted, added: result.added, merged: result.merged };
 }
 
+async function fetchGoogleNewsFeed(
+  searchQuery: string,
+  locale: { hl: string; gl: string; ceid: string },
+): Promise<FeedItem[]> {
+  const feedUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(searchQuery)}&hl=${locale.hl}&gl=${locale.gl}&ceid=${encodeURIComponent(locale.ceid)}`;
+  const feed = await parser.parseURL(feedUrl);
+  return (feed.items ?? []) as FeedItem[];
+}
+
+function articleFromFeedItem(
+  item: FeedItem,
+  searchQuery: string,
+  regionLabel?: string,
+): Article | null {
+  const rawTitle = item.title?.trim();
+  const link = item.link?.trim();
+  if (!rawTitle || !link) return null;
+
+  const { title, publisher } = splitTitleAndPublisher(rawTitle);
+  const rawSummary = item.contentSnippet || item.summary || item.content || title;
+  const summary = summarize(String(rawSummary));
+  if (!looksLikeGoodNews(title, summary)) return null;
+
+  const sourceName =
+    (typeof item.source === "object" && item.source?.title) ||
+    publisher ||
+    (typeof item.source === "string" ? item.source : undefined) ||
+    item.creator ||
+    "Web search result";
+
+  const sourceUrl =
+    (typeof item.source === "object" && item.source?.url) || link;
+
+  const article = buildArticle({
+    title,
+    summary,
+    sources: [
+      createArticleSource({
+        id: "src-web-search",
+        name: sourceName,
+        url: sourceUrl,
+        reliability: 0.68,
+      }),
+    ],
+    collectedAt: item.isoDate || new Date().toISOString(),
+    discoveryMethod: "web_search",
+    searchQuery,
+    sourceReliability: 0.68,
+  });
+
+  if (regionLabel) {
+    article.country = article.country || regionLabel;
+    article.keywords = [...new Set([...article.keywords, regionLabel.toLowerCase()])];
+  }
+
+  return article;
+}
+
 /**
- * Internet search via Google News RSS (no API key required).
+ * Internet search via Google News RSS across focus regions.
  * Results enter the editorial queue as pending_validation.
  */
-export async function collectFromWebSearch(query: string): Promise<{
+export async function collectFromWebSearch(
+  query: string,
+  regionIds?: FocusRegionId[],
+): Promise<{
   fetched: number;
   accepted: number;
   added: number;
   merged: number;
   query: string;
+  regions: string[];
 }> {
-  const cleaned = query.trim();
-  if (!cleaned) {
-    return { fetched: 0, accepted: 0, added: 0, merged: 0, query: cleaned };
-  }
-
-  const searchQuery = `${cleaned} (breakthrough OR restored OR progress OR vaccine OR renewable OR accessibility OR conservation OR humanitarian)`;
-  const feedUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(searchQuery)}&hl=en-US&gl=US&ceid=US:en`;
+  const cleaned = query.trim() || DEFAULT_WEB_SEARCH_TOPIC;
+  const selectedRegions = FOCUS_REGIONS.filter((region) =>
+    regionIds?.length ? regionIds.includes(region.id) : true,
+  );
 
   let fetched = 0;
   let accepted = 0;
   const candidates: Article[] = [];
+  const errors: string[] = [];
 
-  try {
-    const feed = await parser.parseURL(feedUrl);
-    for (const item of feed.items.slice(0, 15) as FeedItem[]) {
-      fetched += 1;
-      const rawTitle = item.title?.trim();
-      const link = item.link?.trim();
-      if (!rawTitle || !link) continue;
+  for (const region of selectedRegions) {
+    const searchQuery = buildRegionalSearchQuery(region, cleaned);
+    const locale = region.locales[0];
 
-      const { title, publisher } = splitTitleAndPublisher(rawTitle);
-      const rawSummary = item.contentSnippet || item.summary || item.content || title;
-      const summary = summarize(String(rawSummary));
-      if (!looksLikeGoodNews(title, summary)) continue;
-
-      const sourceName =
-        (typeof item.source === "object" && item.source?.title) ||
-        publisher ||
-        (typeof item.source === "string" ? item.source : undefined) ||
-        item.creator ||
-        "Web search result";
-
-      const sourceUrl =
-        (typeof item.source === "object" && item.source?.url) || link;
-
-      candidates.push(
-        buildArticle({
-          title,
-          summary,
-          sources: [
-            createArticleSource({
-              id: "src-web-search",
-              name: sourceName,
-              url: sourceUrl,
-              reliability: 0.68,
-            }),
-          ],
-          collectedAt: item.isoDate || new Date().toISOString(),
-          discoveryMethod: "web_search",
-          searchQuery: cleaned,
-          sourceReliability: 0.68,
-        }),
-      );
-      accepted += 1;
+    try {
+      const items = await fetchGoogleNewsFeed(searchQuery, locale);
+      for (const item of items.slice(0, 8)) {
+        fetched += 1;
+        const article = articleFromFeedItem(item, cleaned, region.label);
+        if (!article) continue;
+        candidates.push(article);
+        accepted += 1;
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "unknown error";
+      console.error(`Web search failed for ${region.label}:`, error);
+      errors.push(`${region.label}: ${message}`);
     }
-  } catch (error) {
-    console.error("Web search collection failed:", error);
-    throw error;
+  }
+
+  if (candidates.length === 0 && errors.length > 0) {
+    throw new Error(
+      `Internet search failed for all regions. ${errors.slice(0, 2).join(" | ")}`,
+    );
   }
 
   const result = await upsertArticles(candidates);
@@ -260,6 +311,7 @@ export async function collectFromWebSearch(query: string): Promise<{
     added: result.added,
     merged: result.merged,
     query: cleaned,
+    regions: selectedRegions.map((region) => region.label),
   };
 }
 

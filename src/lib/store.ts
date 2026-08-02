@@ -1,13 +1,20 @@
 import { promises as fs } from "fs";
 import path from "path";
+import { nanoid } from "nanoid";
 import {
   applyPrimarySource,
   getArticleSources,
   mergeArticleSources,
 } from "./sources";
-import type { Article, EditorialStatus, StoreData } from "./types";
+import type { Article, EditorialStatus, Source, StoreData } from "./types";
 
-const DATA_PATH = path.join(process.cwd(), "data", "store.json");
+const SEED_PATH = path.join(process.cwd(), "data", "store.json");
+const LOCAL_PATH = path.join(process.cwd(), "data", "store.json");
+const VERCEL_PATH = path.join("/tmp", "dopa-store.json");
+
+function writableStorePath(): string {
+  return process.env.VERCEL ? VERCEL_PATH : LOCAL_PATH;
+}
 
 function normalizeTitle(title: string): string {
   return title
@@ -18,27 +25,44 @@ function normalizeTitle(title: string): string {
     .slice(0, 96);
 }
 
-async function ensureStore(): Promise<StoreData> {
+async function readJsonFile(filePath: string): Promise<StoreData | null> {
   try {
-    const raw = await fs.readFile(DATA_PATH, "utf8");
+    const raw = await fs.readFile(filePath, "utf8");
     return JSON.parse(raw) as StoreData;
   } catch {
-    const empty: StoreData = {
-      version: 1,
-      updatedAt: new Date().toISOString(),
-      sources: [],
-      articles: [],
-    };
-    await fs.mkdir(path.dirname(DATA_PATH), { recursive: true });
-    await fs.writeFile(DATA_PATH, JSON.stringify(empty, null, 2), "utf8");
-    return empty;
+    return null;
   }
+}
+
+async function ensureStore(): Promise<StoreData> {
+  const target = writableStorePath();
+  const existing = await readJsonFile(target);
+  if (existing) return existing;
+
+  const seed = await readJsonFile(SEED_PATH);
+  const data: StoreData = seed ?? {
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    sources: [],
+    articles: [],
+  };
+
+  await persist(data);
+  return data;
 }
 
 async function persist(data: StoreData): Promise<void> {
   data.updatedAt = new Date().toISOString();
-  await fs.mkdir(path.dirname(DATA_PATH), { recursive: true });
-  await fs.writeFile(DATA_PATH, JSON.stringify(data, null, 2), "utf8");
+  const target = writableStorePath();
+  try {
+    await fs.mkdir(path.dirname(target), { recursive: true });
+    await fs.writeFile(target, JSON.stringify(data, null, 2), "utf8");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown error";
+    throw new Error(
+      `Could not save knowledge store (${message}). On Vercel, writable storage must use /tmp or a database.`,
+    );
+  }
 }
 
 export async function readStore(): Promise<StoreData> {
@@ -202,6 +226,50 @@ export async function updateArticleContent(
   return article;
 }
 
+export async function listTrustedSources(): Promise<Source[]> {
+  const store = await readStore();
+  return store.sources.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function upsertTrustedSource(
+  input: Omit<Source, "id"> & { id?: string },
+): Promise<Source> {
+  const store = await readStore();
+  const existingIndex = input.id
+    ? store.sources.findIndex((source) => source.id === input.id)
+    : -1;
+
+  const source: Source = {
+    id: input.id || `src-${nanoid(8)}`,
+    name: input.name.trim(),
+    url: input.url.trim(),
+    feedUrl: input.feedUrl?.trim() || undefined,
+    reliability: Math.max(0, Math.min(1, input.reliability)),
+    notes: input.notes?.trim() || undefined,
+    enabled: input.enabled ?? true,
+    recommendedBy: input.recommendedBy?.trim() || undefined,
+    channel: input.channel || "rss",
+  };
+
+  if (existingIndex >= 0) {
+    store.sources[existingIndex] = source;
+  } else {
+    store.sources.push(source);
+  }
+
+  await persist(store);
+  return source;
+}
+
+export async function deleteTrustedSource(id: string): Promise<boolean> {
+  const store = await readStore();
+  const before = store.sources.length;
+  store.sources = store.sources.filter((source) => source.id !== id);
+  if (store.sources.length === before) return false;
+  await persist(store);
+  return true;
+}
+
 export async function searchArticles(query: string): Promise<Article[]> {
   const q = query.trim().toLowerCase();
   if (!q) return listPublishedArticles();
@@ -217,6 +285,7 @@ export async function searchArticles(query: string): Promise<Article[]> {
       article.body,
       article.category,
       article.sourceName,
+      article.country ?? "",
       sources,
       ...article.keywords,
     ]

@@ -2,12 +2,29 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  DEFAULT_WEB_SEARCH_TOPIC,
+  FOCUS_REGIONS,
+  type FocusRegionId,
+} from "@/lib/regions";
 
 export function CollectButton() {
   const router = useRouter();
   const [busy, setBusy] = useState<"rss" | "web" | null>(null);
-  const [query, setQuery] = useState("medical breakthrough OR solar microgrid OR wildlife recovery");
+  const [query, setQuery] = useState(DEFAULT_WEB_SEARCH_TOPIC);
+  const [regions, setRegions] = useState<FocusRegionId[]>(
+    FOCUS_REGIONS.map((region) => region.id),
+  );
   const [message, setMessage] = useState<string | null>(null);
+
+  function toggleRegion(id: FocusRegionId) {
+    setRegions((current) => {
+      if (current.includes(id)) {
+        return current.length === 1 ? current : current.filter((item) => item !== id);
+      }
+      return [...current, id];
+    });
+  }
 
   async function collectRss() {
     setBusy("rss");
@@ -45,7 +62,7 @@ export function CollectButton() {
       const response = await fetch("/api/collect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "web", query }),
+        body: JSON.stringify({ mode: "web", query, regions }),
       });
       const payload = (await response.json()) as {
         error?: string;
@@ -54,10 +71,11 @@ export function CollectButton() {
         added?: number;
         merged?: number;
         query?: string;
+        regions?: string[];
       };
       if (!response.ok) throw new Error(payload.error || "Internet search failed");
       setMessage(
-        `Web search “${payload.query}”: fetched ${payload.fetched}, accepted ${payload.accepted}, added ${payload.added}, merged sources on ${payload.merged}.`,
+        `Web search “${payload.query}” in ${payload.regions?.join(", ")}: fetched ${payload.fetched}, accepted ${payload.accepted}, added ${payload.added}, merged sources on ${payload.merged}.`,
       );
       router.refresh();
     } catch (err) {
@@ -76,22 +94,39 @@ export function CollectButton() {
       </div>
 
       <form className="web-search-form" onSubmit={collectWeb}>
-        <label htmlFor="web-query">Internet search</label>
+        <label htmlFor="web-query">Internet search (site assistants)</label>
+        <div className="region-chips" role="group" aria-label="Focus regions">
+          {FOCUS_REGIONS.map((region) => {
+            const active = regions.includes(region.id);
+            return (
+              <button
+                key={region.id}
+                type="button"
+                className={active ? "region-chip active" : "region-chip"}
+                onClick={() => toggleRegion(region.id)}
+                disabled={busy !== null}
+              >
+                {region.label}
+              </button>
+            );
+          })}
+        </div>
         <div className="web-search-row">
           <input
             id="web-query"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search the web for good news…"
+            placeholder="Optional topic, e.g. vaccine OR solar OR education"
             disabled={busy !== null}
           />
-          <button type="submit" disabled={busy !== null || !query.trim()}>
+          <button type="submit" disabled={busy !== null || regions.length === 0}>
             {busy === "web" ? "Searching…" : "Search & collect"}
           </button>
         </div>
         <p className="collect-hint">
-          Searches Google News, filters for positive progress, and adds candidates
-          to the validation queue. Matching stories merge extra sources.
+          Built into the site — not Cursor. Searches Google News for positive
+          progress in selected regions, then adds candidates to the validation
+          queue.
         </p>
       </form>
 

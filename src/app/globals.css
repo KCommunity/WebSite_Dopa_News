@@ -435,6 +435,28 @@ button.ghost {
   padding-top: 0.25rem;
 }
 
+.region-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.region-chip {
+  padding: 0.45rem 0.85rem !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.7) !important;
+  border: 1px solid var(--line) !important;
+  color: var(--ink-soft) !important;
+  box-shadow: none !important;
+  font-weight: 600 !important;
+}
+
+.region-chip.active {
+  background: linear-gradient(135deg, var(--lagoon), var(--lagoon-deep)) !important;
+  border-color: transparent !important;
+  color: white !important;
+}
+
 .web-search-form label {
   font-weight: 700;
 }
@@ -588,6 +610,45 @@ button.ghost {
   border: 1px solid var(--line);
   color: var(--ink);
   box-shadow: none;
+}
+
+.trusted-sources {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.trusted-source-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.trusted-source-list li {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.trusted-source-list li > div:first-child {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.trusted-source-list span,
+.trusted-source-list em,
+.trusted-source-list code {
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+}
+
+.trusted-source-list a {
+  color: var(--lagoon-deep);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-all;
 }
 
 .admin-actions .ghost {

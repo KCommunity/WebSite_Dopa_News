@@ -5,28 +5,29 @@ import {
   collectFromWebSearch,
   DEFAULT_SOURCES,
 } from "@/lib/collection";
+import { FOCUS_REGIONS } from "@/lib/regions";
 import { readStore, writeStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
+const regionIds = FOCUS_REGIONS.map((region) => region.id) as [
+  (typeof FOCUS_REGIONS)[number]["id"],
+  ...(typeof FOCUS_REGIONS)[number]["id"][],
+];
+
 const bodySchema = z.object({
   mode: z.enum(["rss", "web"]).default("rss"),
   query: z.string().trim().max(200).optional(),
+  regions: z.array(z.enum(regionIds)).max(5).optional(),
 });
 
 export async function POST(request: Request) {
   try {
     const json = await request.json().catch(() => ({}));
-    const { mode, query } = bodySchema.parse(json);
+    const { mode, query, regions } = bodySchema.parse(json);
 
     if (mode === "web") {
-      if (!query) {
-        return NextResponse.json(
-          { error: "Enter a search query for internet search." },
-          { status: 400 },
-        );
-      }
-      const result = await collectFromWebSearch(query);
+      const result = await collectFromWebSearch(query || "", regions);
       return NextResponse.json({ ok: true, mode, ...result });
     }
 
@@ -36,9 +37,11 @@ export async function POST(request: Request) {
       await writeStore(store);
     }
 
-    const result = await collectFromSources(
-      store.sources.length ? store.sources : DEFAULT_SOURCES,
+    const activeSources = (store.sources.length ? store.sources : DEFAULT_SOURCES).filter(
+      (source) => source.enabled !== false,
     );
+
+    const result = await collectFromSources(activeSources);
 
     return NextResponse.json({
       ok: true,
@@ -50,8 +53,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid collection request" }, { status: 400 });
     }
     console.error(error);
+    const detail =
+      error instanceof Error ? error.message : "Unknown collection error";
     return NextResponse.json(
-      { error: "Collection failed. Check feeds or search query and try again." },
+      {
+        error: `Collection failed: ${detail}`,
+      },
       { status: 500 },
     );
   }

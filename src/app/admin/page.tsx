@@ -1,5 +1,6 @@
 import { AdminArticleEditor } from "@/components/AdminArticleEditor";
 import { CollectButton } from "@/components/CollectButton";
+import { TrustedSourcesPanel } from "@/components/TrustedSourcesPanel";
 import { formatDate } from "@/lib/format";
 import { getArticleSources } from "@/lib/sources";
 import { listArticlesByStatus, listPublishedArticles, readStore } from "@/lib/store";
@@ -45,6 +46,10 @@ export default async function AdminPage() {
         </div>
 
         <CollectButton />
+
+        <div style={{ marginTop: "3rem" }}>
+          <TrustedSourcesPanel sources={store.sources} />
+        </div>
 
         <div className="admin-queue" style={{ marginTop: "2.5rem" }}>
           <h2 className="page-title" style={{ fontSize: "1.8rem" }}>
