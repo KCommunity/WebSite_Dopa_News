@@ -385,26 +385,54 @@ button.ghost {
   padding: 3rem 0 5rem;
 }
 
+.admin-kicker {
+  margin: 0 0 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--lagoon);
+}
+
 .admin-subnav {
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem;
-  margin: 1rem 0 0.25rem;
+  margin: 1.1rem 0 0.35rem;
+  padding: 0.35rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--line);
+  width: fit-content;
 }
 
 .admin-subnav-link {
-  padding: 0.45rem 0.95rem;
+  padding: 0.55rem 1.15rem;
   border-radius: 999px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.65);
+  border: 0;
+  background: transparent;
   color: var(--ink-soft);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .admin-subnav-link.active {
   background: linear-gradient(135deg, var(--lagoon), var(--lagoon-deep));
-  border-color: transparent;
   color: white;
+}
+
+.admin-subnav-link:hover {
+  color: var(--lagoon-deep);
+}
+
+.admin-subnav-link.active:hover {
+  color: white;
+}
+
+.section-head a {
+  color: var(--lagoon-deep);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 600;
 }
 
 .admin-queue {

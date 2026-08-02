@@ -34,6 +34,7 @@ export function AdminArticleEditor({
   );
 
   const [editing, setEditing] = useState(false);
+  const [showLinks, setShowLinks] = useState(false);
   const [busy, setBusy] = useState<"save" | "publish" | "reject" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -162,51 +163,61 @@ export function AdminArticleEditor({
 
   return (
     <div className="admin-editor">
-      <div className="source-check">
-        <strong>Check sources</strong>
-        <ul>
-          {sources
-            .filter((source) => source.url)
-            .map((source) => (
-              <li key={source.key}>
-                <div>
-                  <span>{source.name || "Unnamed source"}</span>
-                  <a
-                    href={source.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="source-open"
-                  >
-                    Open source
-                  </a>
-                </div>
-                <code>{source.url}</code>
-              </li>
-            ))}
-        </ul>
-      </div>
-
       {!editing ? (
-        <div className="admin-actions">
-          <button type="button" className="ghost" onClick={() => setEditing(true)}>
-            Edit article
-          </button>
-          <button
-            type="button"
-            disabled={busy !== null}
-            onClick={() => act("publish")}
-          >
-            {busy === "publish" ? "Publishing…" : "Approve & publish"}
-          </button>
-          <button
-            type="button"
-            className="ghost"
-            disabled={busy !== null}
-            onClick={() => act("reject")}
-          >
-            Reject
-          </button>
-        </div>
+        <>
+          <div className="admin-actions">
+            <button type="button" className="ghost" onClick={() => setEditing(true)}>
+              Edit article
+            </button>
+            <button
+              type="button"
+              className="ghost"
+              onClick={() => setShowLinks((value) => !value)}
+            >
+              {showLinks ? "Hide article links" : "Open article links"}
+            </button>
+            <button
+              type="button"
+              disabled={busy !== null}
+              onClick={() => act("publish")}
+            >
+              {busy === "publish" ? "Publishing…" : "Approve & publish"}
+            </button>
+            <button
+              type="button"
+              className="ghost"
+              disabled={busy !== null}
+              onClick={() => act("reject")}
+            >
+              Reject
+            </button>
+          </div>
+          {showLinks ? (
+            <div className="source-check">
+              <strong>Article links</strong>
+              <ul>
+                {sources
+                  .filter((source) => source.url)
+                  .map((source) => (
+                    <li key={source.key}>
+                      <div>
+                        <span>{source.name || "Unnamed source"}</span>
+                        <a
+                          href={source.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="source-open"
+                        >
+                          Open
+                        </a>
+                      </div>
+                      <code>{source.url}</code>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          ) : null}
+        </>
       ) : (
         <form className="admin-edit-form" onSubmit={saveEdits}>
           <label>

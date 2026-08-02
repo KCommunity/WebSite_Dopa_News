@@ -92,16 +92,10 @@ export function TrustedSourcesPanel({ sources }: { sources: Source[] }) {
 
   return (
     <section className="trusted-sources">
-      <div className="section-head">
-        <h2 className="page-title" style={{ fontSize: "1.8rem" }}>
-          Trusted sources
-        </h2>
-        <p className="lede">
-          Recommend and manage outlets used for RSS collection. Social channels
-          (Instagram, X, Facebook) can be listed now; live collection from those
-          networks needs official APIs in a later phase.
-        </p>
-      </div>
+      <p className="collect-hint">
+        Social channels (Instagram, X, Facebook) can be listed here; live
+        collection from those networks needs official APIs in a later phase.
+      </p>
 
       <ul className="trusted-source-list">
         {sources.map((source) => (

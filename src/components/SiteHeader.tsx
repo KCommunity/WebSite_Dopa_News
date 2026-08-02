@@ -21,7 +21,7 @@ export function SiteHeader() {
               {link.label}
             </Link>
           ))}
-          <Link href="/admin" className="nav-admin">
+          <Link href="/admin/news" className="nav-admin">
             Editorial
           </Link>
         </nav>

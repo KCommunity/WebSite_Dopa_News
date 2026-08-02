@@ -1,11 +1,11 @@
-import { AdminNav } from "@/components/AdminNav";
+import { AdminShell } from "@/components/AdminShell";
 import { TrustedSourcesPanel } from "@/components/TrustedSourcesPanel";
 import { getStorageMode, readStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Editorial Desk · Sources",
+  title: "Sources · Editorial Desk",
 };
 
 export default async function AdminSourcesPage() {
@@ -13,25 +13,26 @@ export default async function AdminSourcesPage() {
   const storageMode = getStorageMode();
 
   return (
-    <section className="admin-page">
-      <div className="shell">
-        <div className="section-head">
-          <h1 className="page-title">Editorial desk</h1>
-          <p className="lede">
-            Recommend and manage trusted outlets used for RSS collection and
-            search fallback.
+    <AdminShell
+      title="Sources"
+      lede="Recommend and manage trusted outlets used for RSS collection and search fallback. News review is on a separate page."
+      active="sources"
+      notice={
+        <>
+          <p className="collect-hint">
+            This page is for trusted sources only. Review news on the{" "}
+            <a href="/admin/news">News</a> page.
           </p>
-          <AdminNav active="sources" />
           {storageMode === "memory" ? (
             <p className="form-error">
               Durable storage is not configured. Source changes may not persist
               after refresh until Vercel Blob is connected.
             </p>
           ) : null}
-        </div>
-
-        <TrustedSourcesPanel sources={store.sources} />
-      </div>
-    </section>
+        </>
+      }
+    >
+      <TrustedSourcesPanel sources={store.sources} />
+    </AdminShell>
   );
 }

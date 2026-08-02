@@ -4,7 +4,7 @@ export function AdminNav({ active }: { active: "news" | "sources" }) {
   return (
     <nav className="admin-subnav" aria-label="Editorial sections">
       <Link
-        href="/admin"
+        href="/admin/news"
         className={active === "news" ? "admin-subnav-link active" : "admin-subnav-link"}
       >
         News
