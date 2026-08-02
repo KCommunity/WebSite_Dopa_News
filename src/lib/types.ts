@@ -33,6 +33,14 @@ export interface Source {
   notes?: string;
 }
 
+/** One reporting outlet / URL backing a news item. */
+export interface ArticleSource {
+  id?: string;
+  name: string;
+  url: string;
+  reliability?: number;
+}
+
 export interface Article {
   id: string;
   slug: string;
@@ -41,9 +49,12 @@ export interface Article {
   body: string;
   category: CategorySlug;
   status: EditorialStatus;
+  /** Primary source kept for backward compatibility. */
   sourceId: string;
   sourceName: string;
   sourceUrl: string;
+  /** One or several sources for this news item. */
+  sources?: ArticleSource[];
   originalLanguage: string;
   country?: string;
   keywords: string[];
@@ -58,6 +69,8 @@ export interface Article {
   featured?: boolean;
   imageUrl?: string;
   imageAlt?: string;
+  discoveryMethod?: "rss" | "web_search" | "seed";
+  searchQuery?: string;
 }
 
 export interface StoreData {

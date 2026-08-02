@@ -28,9 +28,14 @@ export function scoreImpact(category: CategorySlug, title: string, summary: stri
   return Math.max(40, Math.min(98, Math.round(score)));
 }
 
-export function scoreCredibility(sourceReliability: number, hasUrl: boolean): number {
+export function scoreCredibility(
+  sourceReliability: number,
+  hasUrl: boolean,
+  sourceCount = 1,
+): number {
   let score = sourceReliability * 100;
   if (hasUrl) score += 4;
+  if (sourceCount > 1) score += Math.min(8, (sourceCount - 1) * 3);
   return Math.max(35, Math.min(97, Math.round(score)));
 }
 
@@ -39,6 +44,12 @@ export function buildExplainability(params: {
   credibilityScore: number;
   categoryName: string;
   sourceName: string;
+  sourceCount?: number;
 }): string {
-  return `Selected because it shows meaningful progress in ${params.categoryName.toLowerCase()}, with an impact score of ${params.impactScore}/100, credibility score of ${params.credibilityScore}/100, and a trusted source (${params.sourceName}). Editorial publication still requires human approval.`;
+  const sourceText =
+    (params.sourceCount ?? 1) > 1
+      ? `${params.sourceCount} sources (${params.sourceName})`
+      : `source (${params.sourceName})`;
+
+  return `Selected because it shows meaningful progress in ${params.categoryName.toLowerCase()}, with an impact score of ${params.impactScore}/100, credibility score of ${params.credibilityScore}/100, and ${sourceText}. Editorial publication still requires human approval.`;
 }

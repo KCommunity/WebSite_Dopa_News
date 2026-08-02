@@ -1,6 +1,7 @@
-import { AdminActions } from "@/components/AdminActions";
+import { AdminArticleEditor } from "@/components/AdminArticleEditor";
 import { CollectButton } from "@/components/CollectButton";
 import { formatDate } from "@/lib/format";
+import { getArticleSources } from "@/lib/sources";
 import { listArticlesByStatus, listPublishedArticles, readStore } from "@/lib/store";
 import { getCategoryName } from "@/lib/taxonomy";
 
@@ -23,8 +24,8 @@ export default async function AdminPage() {
         <div className="section-head">
           <h1 className="page-title">Editorial desk</h1>
           <p className="lede">
-            Hermes prepares candidates. Humans approve publication. Nothing goes
-            live without review.
+            Hermes prepares candidates. Humans edit, check sources, and approve
+            publication. Nothing goes live without review.
           </p>
         </div>
 
@@ -51,7 +52,8 @@ export default async function AdminPage() {
           </h2>
           {pending.length === 0 ? (
             <p className="empty-state">
-              Queue is clear. Run collection to gather new candidates.
+              Queue is clear. Run collection or internet search to gather new
+              candidates.
             </p>
           ) : (
             pending.map((article) => (
@@ -60,18 +62,19 @@ export default async function AdminPage() {
                   <span>{getCategoryName(article.category)}</span>
                   <span>Impact {article.impactScore}</span>
                   <span>Credibility {article.credibilityScore}</span>
+                  <span>{getArticleSources(article).length} source(s)</span>
                   <span>{formatDate(article.collectedAt)}</span>
+                  {article.discoveryMethod === "web_search" ? (
+                    <span>Web search</span>
+                  ) : null}
                 </div>
                 <h3>{article.title}</h3>
                 <p>{article.summary}</p>
                 <p>{article.explainability}</p>
-                <p>
-                  Source:{" "}
-                  <a href={article.sourceUrl} target="_blank" rel="noreferrer">
-                    {article.sourceName}
-                  </a>
-                </p>
-                <AdminActions articleId={article.id} />
+                {article.searchQuery ? (
+                  <p className="collect-hint">Query: {article.searchQuery}</p>
+                ) : null}
+                <AdminArticleEditor article={article} />
               </article>
             ))
           )}

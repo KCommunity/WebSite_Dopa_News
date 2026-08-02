@@ -411,6 +411,12 @@ button.ghost {
 
 .admin-actions,
 .collect-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.collect-actions,
+.admin-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
@@ -418,8 +424,170 @@ button.ghost {
 }
 
 .admin-actions .ghost,
-.collect-panel p {
+.collect-message,
+.collect-hint {
   color: var(--ink-soft);
+}
+
+.web-search-form {
+  display: grid;
+  gap: 0.55rem;
+  padding-top: 0.25rem;
+}
+
+.web-search-form label {
+  font-weight: 700;
+}
+
+.web-search-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.web-search-row input {
+  flex: 1 1 240px;
+  min-height: 3rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0.8rem 1.1rem;
+  font: inherit;
+  color: var(--ink);
+}
+
+.collect-hint {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.source-list {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.source-list ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--ink-soft);
+}
+
+.source-list a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.source-list a:hover {
+  color: var(--lagoon-deep);
+}
+
+.admin-editor {
+  display: grid;
+  gap: 1rem;
+}
+
+.source-check ul {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.source-check li {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.source-check li > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.source-check code {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  word-break: break-all;
+}
+
+.source-open {
+  color: var(--lagoon-deep);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 600;
+}
+
+.admin-edit-form {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.admin-edit-form label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 600;
+}
+
+.admin-edit-form input,
+.admin-edit-form textarea,
+.admin-edit-form select,
+.source-editor-row input {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.78);
+  padding: 0.75rem 0.9rem;
+  font: inherit;
+  color: var(--ink);
+}
+
+.admin-edit-form textarea {
+  resize: vertical;
+}
+
+.admin-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.9rem;
+}
+
+.source-editor {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.source-editor-head,
+.source-editor-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.source-editor-row input {
+  flex: 1 1 180px;
+}
+
+.source-editor-row a,
+.disabled-link {
+  font-weight: 600;
+  color: var(--lagoon-deep);
+}
+
+.disabled-link {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.admin-actions button.ghost {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  box-shadow: none;
 }
 
 .admin-actions .ghost {

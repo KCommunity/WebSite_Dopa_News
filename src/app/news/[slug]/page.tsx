@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { SourceList } from "@/components/SourceList";
 import { formatDate } from "@/lib/format";
 import { getArticleBySlug, listPublishedArticles } from "@/lib/store";
 import { getCategoryName } from "@/lib/taxonomy";
@@ -47,12 +48,7 @@ export default async function ArticlePage({ params }: Props) {
         <div className="explain-box">
           <strong>Why this story</strong>
           <p>{article.explainability}</p>
-          <p>
-            Source:{" "}
-            <a href={article.sourceUrl} target="_blank" rel="noreferrer">
-              {article.sourceName}
-            </a>
-          </p>
+          <SourceList article={article} />
         </div>
         {related.length > 0 ? (
           <section className="section" style={{ paddingBottom: 0 }}>

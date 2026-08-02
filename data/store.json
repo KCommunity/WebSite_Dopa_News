@@ -41,7 +41,13 @@
       "sourceUrl": "https://example.com/mangrove-restoration",
       "originalLanguage": "en",
       "country": "Indonesia",
-      "keywords": ["mangrove", "restoration", "coastal", "community", "biodiversity"],
+      "keywords": [
+        "mangrove",
+        "restoration",
+        "coastal",
+        "community",
+        "biodiversity"
+      ],
       "impactScore": 88,
       "credibilityScore": 91,
       "explainability": "Selected because it shows durable environmental restoration with clear human benefit, high credibility, and long-term community value. Editorial publication still requires human approval.",
@@ -52,7 +58,26 @@
       "publishedAt": "2026-08-01T10:00:00.000Z",
       "featured": true,
       "imageUrl": "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1800&q=80",
-      "imageAlt": "Sunlit coastal waters with green shoreline vegetation"
+      "imageAlt": "Sunlit coastal waters with green shoreline vegetation",
+      "sources": [
+        {
+          "id": "src-seed",
+          "name": "Dopa News Seed Desk",
+          "url": "https://example.com/mangrove-restoration",
+          "reliability": 0.9
+        },
+        {
+          "name": "UN Environment Programme",
+          "url": "https://www.unep.org/news-and-stories",
+          "reliability": 0.92
+        },
+        {
+          "name": "Mongabay",
+          "url": "https://news.mongabay.com/",
+          "reliability": 0.88
+        }
+      ],
+      "discoveryMethod": "seed"
     },
     {
       "id": "seed-002",
@@ -67,7 +92,13 @@
       "sourceUrl": "https://example.com/open-prosthetics",
       "originalLanguage": "en",
       "country": "Kenya",
-      "keywords": ["prosthetics", "open source", "accessibility", "children", "clinic"],
+      "keywords": [
+        "prosthetics",
+        "open source",
+        "accessibility",
+        "children",
+        "clinic"
+      ],
       "impactScore": 86,
       "credibilityScore": 89,
       "explainability": "Selected because it demonstrates technology with direct human benefit, strong accessibility impact, and practical deployment evidence.",
@@ -78,7 +109,16 @@
       "publishedAt": "2026-07-30T11:00:00.000Z",
       "featured": false,
       "imageUrl": "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1600&q=80",
-      "imageAlt": "Hands working with tools at a maker bench"
+      "imageAlt": "Hands working with tools at a maker bench",
+      "sources": [
+        {
+          "id": "src-seed",
+          "name": "Dopa News Seed Desk",
+          "url": "https://example.com/open-prosthetics",
+          "reliability": 0.9
+        }
+      ],
+      "discoveryMethod": "seed"
     },
     {
       "id": "seed-003",
@@ -93,7 +133,13 @@
       "sourceUrl": "https://example.com/accessible-transit",
       "originalLanguage": "en",
       "country": "Spain",
-      "keywords": ["transit", "accessibility", "elevators", "inclusion", "city"],
+      "keywords": [
+        "transit",
+        "accessibility",
+        "elevators",
+        "inclusion",
+        "city"
+      ],
       "impactScore": 84,
       "credibilityScore": 90,
       "explainability": "Selected for measurable accessibility gains that expand everyday independence and civic participation.",
@@ -104,7 +150,16 @@
       "publishedAt": "2026-07-28T12:00:00.000Z",
       "featured": false,
       "imageUrl": "https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&w=1600&q=80",
-      "imageAlt": "Modern train at a bright station platform"
+      "imageAlt": "Modern train at a bright station platform",
+      "sources": [
+        {
+          "id": "src-seed",
+          "name": "Dopa News Seed Desk",
+          "url": "https://example.com/accessible-transit",
+          "reliability": 0.9
+        }
+      ],
+      "discoveryMethod": "seed"
     },
     {
       "id": "seed-004",
@@ -119,7 +174,13 @@
       "sourceUrl": "https://example.com/solar-microgrid",
       "originalLanguage": "en",
       "country": "India",
-      "keywords": ["solar", "microgrid", "education", "clinic", "cooperative"],
+      "keywords": [
+        "solar",
+        "microgrid",
+        "education",
+        "clinic",
+        "cooperative"
+      ],
       "impactScore": 87,
       "credibilityScore": 88,
       "explainability": "Selected because clean energy access here clearly improves health services and education, with community ownership that supports durability.",
@@ -127,7 +188,16 @@
       "processedAt": "2026-08-02T07:10:00.000Z",
       "featured": false,
       "imageUrl": "https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&w=1600&q=80",
-      "imageAlt": "Solar panels catching warm evening light"
+      "imageAlt": "Solar panels catching warm evening light",
+      "sources": [
+        {
+          "id": "src-seed",
+          "name": "Dopa News Seed Desk",
+          "url": "https://example.com/solar-microgrid",
+          "reliability": 0.9
+        }
+      ],
+      "discoveryMethod": "seed"
     },
     {
       "id": "seed-005",
@@ -142,7 +212,13 @@
       "sourceUrl": "https://example.com/malaria-vaccine-trial",
       "originalLanguage": "en",
       "country": "Ghana",
-      "keywords": ["malaria", "vaccine", "children", "trial", "public health"],
+      "keywords": [
+        "malaria",
+        "vaccine",
+        "children",
+        "trial",
+        "public health"
+      ],
       "impactScore": 92,
       "credibilityScore": 93,
       "explainability": "Selected for high scientific and human impact, peer-style trial framing, and strong public-health relevance. Requires editorial confirmation of source claims before publishing.",
@@ -150,7 +226,26 @@
       "processedAt": "2026-08-02T06:40:00.000Z",
       "featured": false,
       "imageUrl": "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1600&q=80",
-      "imageAlt": "Healthcare worker preparing a vaccine dose"
+      "imageAlt": "Healthcare worker preparing a vaccine dose",
+      "sources": [
+        {
+          "id": "src-seed",
+          "name": "Dopa News Seed Desk",
+          "url": "https://example.com/malaria-vaccine-trial",
+          "reliability": 0.9
+        },
+        {
+          "name": "WHO",
+          "url": "https://www.who.int/news",
+          "reliability": 0.94
+        },
+        {
+          "name": "Nature Medicine",
+          "url": "https://www.nature.com/nm/",
+          "reliability": 0.93
+        }
+      ],
+      "discoveryMethod": "seed"
     }
   ]
 }
