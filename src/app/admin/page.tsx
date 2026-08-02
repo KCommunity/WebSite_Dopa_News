@@ -1,5 +1,6 @@
 import { AdminArticleEditor } from "@/components/AdminArticleEditor";
 import { CollectButton } from "@/components/CollectButton";
+import { ManualNewsForm } from "@/components/ManualNewsForm";
 import { TrustedSourcesPanel } from "@/components/TrustedSourcesPanel";
 import { formatDate } from "@/lib/format";
 import { getArticleSources } from "@/lib/sources";
@@ -28,6 +29,10 @@ export default async function AdminPage() {
             AI assistants prepare candidates. Humans edit, check sources, and
             approve publication. Nothing goes live without review.
           </p>
+          <p className="collect-hint">
+            News are not collected automatically every day yet. Use RSS
+            collection, internet search, or add a story manually below.
+          </p>
         </div>
 
         <div className="stats-row">
@@ -46,6 +51,10 @@ export default async function AdminPage() {
         </div>
 
         <CollectButton />
+
+        <div style={{ marginTop: "3rem" }}>
+          <ManualNewsForm />
+        </div>
 
         <div style={{ marginTop: "3rem" }}>
           <TrustedSourcesPanel sources={store.sources} />
@@ -71,6 +80,9 @@ export default async function AdminPage() {
                   <span>{formatDate(article.collectedAt)}</span>
                   {article.discoveryMethod === "web_search" ? (
                     <span>Web search</span>
+                  ) : null}
+                  {article.discoveryMethod === "manual" ? (
+                    <span>Manual</span>
                   ) : null}
                 </div>
                 <h3>{article.title}</h3>

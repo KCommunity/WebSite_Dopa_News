@@ -72,7 +72,7 @@ export interface Article {
   featured?: boolean;
   imageUrl?: string;
   imageAlt?: string;
-  discoveryMethod?: "rss" | "web_search" | "seed";
+  discoveryMethod?: "rss" | "web_search" | "seed" | "manual";
   searchQuery?: string;
 }
 

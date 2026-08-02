@@ -74,8 +74,12 @@ export function CollectButton() {
         regions?: string[];
       };
       if (!response.ok) throw new Error(payload.error || "Internet search failed");
+      const added = payload.added ?? 0;
+      const merged = payload.merged ?? 0;
       setMessage(
-        `Web search “${payload.query}” in ${payload.regions?.join(", ")}: fetched ${payload.fetched}, accepted ${payload.accepted}, added ${payload.added}, merged sources on ${payload.merged}.`,
+        added > 0
+          ? `Web search “${payload.query}” in ${payload.regions?.join(", ")}: added ${added} news item(s) to the validation queue${merged ? ` (also merged sources on ${merged})` : ""}.`
+          : `Web search finished, but no new queue items were created${merged ? ` (updated sources on ${merged} existing item(s))` : ""}. Try Add news for review, or a more specific topic.`,
       );
       router.refresh();
     } catch (err) {

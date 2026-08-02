@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { nanoid } from "nanoid";
+import { slugify } from "./slugify";
 import {
   applyPrimarySource,
   getArticleSources,
@@ -97,6 +98,13 @@ export async function getArticleById(id: string): Promise<Article | undefined> {
   return store.articles.find((article) => article.id === id);
 }
 
+const MERGEABLE_STATUSES = new Set<EditorialStatus>([
+  "collected",
+  "processed",
+  "ai_enriched",
+  "pending_validation",
+]);
+
 export async function upsertArticles(articles: Article[]): Promise<{
   added: number;
   merged: number;
@@ -125,6 +133,22 @@ export async function upsertArticles(articles: Article[]): Promise<{
       continue;
     }
 
+    // Exact same URL already known: only merge into open review items.
+    const sameUrl = getArticleSources(existing).some((source) =>
+      incomingSources.some((incoming) => incoming.url === source.url),
+    );
+
+    if (sameUrl && !MERGEABLE_STATUSES.has(existing.status)) {
+      continue;
+    }
+
+    // Similar title on an already published/rejected story: add a fresh review candidate.
+    if (!MERGEABLE_STATUSES.has(existing.status) && !sameUrl) {
+      store.articles.unshift(applyPrimarySource(article, incomingSources));
+      added += 1;
+      continue;
+    }
+
     const combined = mergeArticleSources(getArticleSources(existing), incomingSources);
     if (combined.length > getArticleSources(existing).length) {
       Object.assign(existing, applyPrimarySource(existing, combined));
@@ -133,12 +157,67 @@ export async function upsertArticles(articles: Article[]): Promise<{
         existing.credibilityScore + (combined.length - 1) * 2,
       );
       existing.explainability = `${existing.explainability} Additional corroborating source(s) were attached.`;
+      if (existing.status !== "pending_validation") {
+        existing.status = "pending_validation";
+      }
       merged += 1;
     }
   }
 
   await persist(store);
   return { added, merged };
+}
+
+export async function createPendingArticle(input: {
+  title: string;
+  summary: string;
+  body?: string;
+  category: Article["category"];
+  country?: string;
+  sourceName: string;
+  sourceUrl: string;
+  keywords?: string[];
+}): Promise<Article> {
+  const store = await readStore();
+  const now = new Date().toISOString();
+  const sources = [
+    {
+      name: input.sourceName.trim(),
+      url: input.sourceUrl.trim(),
+      reliability: 0.75,
+    },
+  ];
+
+  const article = applyPrimarySource(
+    {
+      id: nanoid(),
+      slug: `${slugify(input.title)}-${nanoid(6)}`,
+      title: input.title.trim(),
+      summary: input.summary.trim(),
+      body: (input.body || input.summary).trim(),
+      category: input.category,
+      status: "pending_validation",
+      sourceId: "src-manual",
+      sourceName: sources[0].name,
+      sourceUrl: sources[0].url,
+      sources,
+      originalLanguage: "en",
+      country: input.country?.trim() || undefined,
+      keywords: input.keywords?.map((keyword) => keyword.trim()).filter(Boolean) ?? [],
+      impactScore: 70,
+      credibilityScore: 75,
+      explainability:
+        "Manually submitted for editorial review. Verify sources and claims before publishing.",
+      collectedAt: now,
+      processedAt: now,
+      discoveryMethod: "manual",
+    },
+    sources,
+  );
+
+  store.articles.unshift(article);
+  await persist(store);
+  return article;
 }
 
 export async function updateArticleStatus(
