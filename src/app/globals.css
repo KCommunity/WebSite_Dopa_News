@@ -385,6 +385,28 @@ button.ghost {
   padding: 3rem 0 5rem;
 }
 
+.admin-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 1rem 0 0.25rem;
+}
+
+.admin-subnav-link {
+  padding: 0.45rem 0.95rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.65);
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.admin-subnav-link.active {
+  background: linear-gradient(135deg, var(--lagoon), var(--lagoon-deep));
+  border-color: transparent;
+  color: white;
+}
+
 .admin-queue {
   display: grid;
   gap: 1.5rem;

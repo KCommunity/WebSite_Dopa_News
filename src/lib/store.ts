@@ -1,6 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
-import { put } from "@vercel/blob";
+import { list, put } from "@vercel/blob";
 import { nanoid } from "nanoid";
 import { slugify } from "./slugify";
 import {
@@ -131,10 +131,34 @@ async function readFromBlob(): Promise<StoreData | null> {
   if (!process.env.BLOB_READ_WRITE_TOKEN) return null;
 
   const knownUrl = globalThis.__dopaBlobUrl || process.env.DOPA_BLOB_STORE_URL;
-  if (knownUrl) {
-    const response = await fetch(knownUrl, { cache: "no-store" });
-    if (response.ok) {
-      return (await response.json()) as StoreData;
+  const urls: string[] = [];
+  if (knownUrl) urls.push(knownUrl);
+
+  try {
+    const listed = await list({
+      prefix: BLOB_PATHNAME.replace(/\.json$/, ""),
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+      limit: 20,
+    });
+    for (const blob of listed.blobs) {
+      if (blob.pathname === BLOB_PATHNAME || blob.pathname.endsWith(BLOB_PATHNAME)) {
+        urls.unshift(blob.url);
+        globalThis.__dopaBlobUrl = blob.url;
+      }
+    }
+  } catch (error) {
+    console.error("Blob list failed:", error);
+  }
+
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, { cache: "no-store" });
+      if (response.ok) {
+        globalThis.__dopaBlobUrl = url;
+        return (await response.json()) as StoreData;
+      }
+    } catch (error) {
+      console.error("Blob fetch failed:", error);
     }
   }
 
@@ -264,10 +288,12 @@ const MERGEABLE_STATUSES = new Set<EditorialStatus>([
 export async function upsertArticles(articles: Article[]): Promise<{
   added: number;
   merged: number;
+  articles: Article[];
 }> {
   const store = await readStore();
   let added = 0;
   let merged = 0;
+  const touched: Article[] = [];
 
   for (const article of articles) {
     const incomingSources = getArticleSources(article);
@@ -284,7 +310,9 @@ export async function upsertArticles(articles: Article[]): Promise<{
     });
 
     if (!existing) {
-      store.articles.unshift(applyPrimarySource(article, incomingSources));
+      const created = applyPrimarySource(article, incomingSources);
+      store.articles.unshift(created);
+      touched.push(created);
       added += 1;
       continue;
     }
@@ -298,7 +326,9 @@ export async function upsertArticles(articles: Article[]): Promise<{
     }
 
     if (!MERGEABLE_STATUSES.has(existing.status) && !sameUrl) {
-      store.articles.unshift(applyPrimarySource(article, incomingSources));
+      const created = applyPrimarySource(article, incomingSources);
+      store.articles.unshift(created);
+      touched.push(created);
       added += 1;
       continue;
     }
@@ -314,12 +344,13 @@ export async function upsertArticles(articles: Article[]): Promise<{
       if (existing.status !== "pending_validation") {
         existing.status = "pending_validation";
       }
+      touched.push(existing);
       merged += 1;
     }
   }
 
   await persist(store);
-  return { added, merged };
+  return { added, merged, articles: touched };
 }
 
 export async function createPendingArticle(input: {

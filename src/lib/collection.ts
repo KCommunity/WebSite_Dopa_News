@@ -319,9 +319,20 @@ async function collectFromTrustedRssFallback(
   return candidates;
 }
 
+function dedupeCandidates(articles: Article[]): Article[] {
+  const seen = new Set<string>();
+  const unique: Article[] = [];
+  for (const article of articles) {
+    const key = `${article.title.toLowerCase()}|${article.sourceUrl}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(article);
+  }
+  return unique;
+}
+
 /**
- * Internet search via Google News RSS across focus regions.
- * Falls back to trusted RSS feeds when Google News is unavailable.
+ * Internet search via Google News + trusted RSS (always).
  * Results enter the editorial queue as pending_validation.
  */
 export async function collectFromWebSearch(
@@ -336,7 +347,8 @@ export async function collectFromWebSearch(
   query: string;
   regions: string[];
   maxResults: number;
-  channel: "google_news" | "trusted_rss_fallback";
+  channel: "google_news" | "trusted_rss" | "mixed";
+  articles: Article[];
 }> {
   const cleaned = query.trim() || DEFAULT_WEB_SEARCH_TOPIC;
   const limit = Math.max(1, Math.min(25, Math.round(maxResults)));
@@ -345,24 +357,22 @@ export async function collectFromWebSearch(
   );
 
   let fetched = 0;
-  const candidates: Article[] = [];
+  const googleCandidates: Article[] = [];
   const errors: string[] = [];
-  let channel: "google_news" | "trusted_rss_fallback" = "google_news";
 
   for (const region of selectedRegions) {
-    if (candidates.length >= limit) break;
+    if (googleCandidates.length >= limit) break;
     const searchQuery = buildRegionalSearchQuery(region, cleaned);
     const locale = region.locales[0];
-    const remaining = limit - candidates.length;
 
     try {
       const items = await fetchGoogleNewsFeed(searchQuery, locale);
-      for (const item of items.slice(0, Math.max(remaining * 2, remaining))) {
-        if (candidates.length >= limit) break;
+      for (const item of items.slice(0, limit * 2)) {
+        if (googleCandidates.length >= limit) break;
         fetched += 1;
         const article = articleFromFeedItem(item, cleaned, region.label);
         if (!article) continue;
-        candidates.push(article);
+        googleCandidates.push(article);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "unknown error";
@@ -371,12 +381,14 @@ export async function collectFromWebSearch(
     }
   }
 
-  if (candidates.length === 0) {
-    channel = "trusted_rss_fallback";
-    const fallback = await collectFromTrustedRssFallback(cleaned, limit);
-    fetched += fallback.length;
-    candidates.push(...fallback);
-  }
+  // Always also scan trusted RSS so search works when Google News is blocked.
+  const rssCandidates = await collectFromTrustedRssFallback(cleaned, limit);
+  fetched += rssCandidates.length;
+
+  const candidates = dedupeCandidates([
+    ...googleCandidates,
+    ...rssCandidates,
+  ]).slice(0, limit);
 
   if (candidates.length === 0 && errors.length > 0) {
     throw new Error(
@@ -390,17 +402,24 @@ export async function collectFromWebSearch(
     );
   }
 
-  const limited = candidates.slice(0, limit);
-  const result = await upsertArticles(limited);
+  const result = await upsertArticles(candidates);
+  const channel =
+    googleCandidates.length > 0 && rssCandidates.length > 0
+      ? "mixed"
+      : googleCandidates.length > 0
+        ? "google_news"
+        : "trusted_rss";
+
   return {
     fetched,
-    accepted: limited.length,
+    accepted: candidates.length,
     added: result.added,
     merged: result.merged,
     query: cleaned,
     regions: selectedRegions.map((region) => region.label),
     maxResults: limit,
     channel,
+    articles: result.articles.filter((article) => article.status === "pending_validation"),
   };
 }
 

@@ -7,6 +7,8 @@ import {
   FOCUS_REGIONS,
   type FocusRegionId,
 } from "@/lib/regions";
+import { mergeIntoLocalPendingQueue } from "@/lib/pending-queue";
+import type { Article } from "@/lib/types";
 
 export function CollectButton() {
   const router = useRouter();
@@ -81,17 +83,25 @@ export function CollectButton() {
         maxResults?: number;
         channel?: string;
         storageMode?: string;
+        articles?: Article[];
       };
       if (!response.ok) throw new Error(payload.error || "Internet search failed");
 
-      const added = payload.added ?? 0;
+      if (payload.articles?.length) {
+        mergeIntoLocalPendingQueue(payload.articles);
+        window.dispatchEvent(new Event("dopa-pending-updated"));
+      }
+
+      const added = payload.added ?? payload.articles?.length ?? 0;
       const channelNote =
-        payload.channel === "trusted_rss_fallback"
-          ? " (via trusted RSS fallback)"
-          : "";
+        payload.channel === "trusted_rss"
+          ? " (trusted RSS)"
+          : payload.channel === "mixed"
+            ? " (Google News + trusted RSS)"
+            : "";
       const storageNote =
         payload.storageMode === "memory"
-          ? " Warning: durable storage is not configured on Vercel yet, so results may disappear after refresh."
+          ? " Results are kept in this browser session until durable storage (Vercel Blob) is connected."
           : "";
 
       setMessage(

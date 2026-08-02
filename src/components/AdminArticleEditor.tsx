@@ -20,7 +20,13 @@ function toDrafts(sources: ArticleSource[]): SourceDraft[] {
   }));
 }
 
-export function AdminArticleEditor({ article }: { article: Article }) {
+export function AdminArticleEditor({
+  article,
+  onResolved,
+}: {
+  article: Article;
+  onResolved?: () => void;
+}) {
   const router = useRouter();
   const initialSources = useMemo(
     () => toDrafts(getArticleSources(article)),
@@ -145,6 +151,7 @@ export function AdminArticleEditor({ article }: { article: Article }) {
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error || "Action failed");
+      onResolved?.();
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Action failed");

@@ -2,8 +2,9 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { mergeIntoLocalPendingQueue } from "@/lib/pending-queue";
 import { TAXONOMY } from "@/lib/taxonomy";
-import type { CategorySlug } from "@/lib/types";
+import type { Article, CategorySlug } from "@/lib/types";
 
 export function ManualNewsForm() {
   const router = useRouter();
@@ -38,8 +39,16 @@ export function ManualNewsForm() {
           keywords: keywords || undefined,
         }),
       });
-      const payload = (await response.json()) as { error?: string };
+      const payload = (await response.json()) as {
+        error?: string;
+        article?: Article;
+      };
       if (!response.ok) throw new Error(payload.error || "Could not add news");
+
+      if (payload.article) {
+        mergeIntoLocalPendingQueue([payload.article]);
+        window.dispatchEvent(new Event("dopa-pending-updated"));
+      }
 
       setTitle("");
       setSummary("");
