@@ -12,6 +12,7 @@ export function CollectButton() {
   const router = useRouter();
   const [busy, setBusy] = useState<"rss" | "web" | null>(null);
   const [query, setQuery] = useState(DEFAULT_WEB_SEARCH_TOPIC);
+  const [maxResults, setMaxResults] = useState(5);
   const [regions, setRegions] = useState<FocusRegionId[]>(
     FOCUS_REGIONS.map((region) => region.id),
   );
@@ -62,7 +63,12 @@ export function CollectButton() {
       const response = await fetch("/api/collect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "web", query, regions }),
+        body: JSON.stringify({
+          mode: "web",
+          query,
+          regions,
+          maxResults: Number(maxResults) || 5,
+        }),
       });
       const payload = (await response.json()) as {
         error?: string;
@@ -72,14 +78,26 @@ export function CollectButton() {
         merged?: number;
         query?: string;
         regions?: string[];
+        maxResults?: number;
+        channel?: string;
+        storageMode?: string;
       };
       if (!response.ok) throw new Error(payload.error || "Internet search failed");
+
       const added = payload.added ?? 0;
-      const merged = payload.merged ?? 0;
+      const channelNote =
+        payload.channel === "trusted_rss_fallback"
+          ? " (via trusted RSS fallback)"
+          : "";
+      const storageNote =
+        payload.storageMode === "memory"
+          ? " Warning: durable storage is not configured on Vercel yet, so results may disappear after refresh."
+          : "";
+
       setMessage(
         added > 0
-          ? `Web search “${payload.query}” in ${payload.regions?.join(", ")}: added ${added} news item(s) to the validation queue${merged ? ` (also merged sources on ${merged})` : ""}.`
-          : `Web search finished, but no new queue items were created${merged ? ` (updated sources on ${merged} existing item(s))` : ""}. Try Add news for review, or a more specific topic.`,
+          ? `Added ${added} news item(s) to the validation queue${channelNote}. Max ${payload.maxResults}. Fetched ${payload.fetched}, accepted ${payload.accepted}.${storageNote}`
+          : `Search finished${channelNote}, but no new queue items were created (fetched ${payload.fetched}, accepted ${payload.accepted}, merged ${payload.merged}).${storageNote}`,
       );
       router.refresh();
     } catch (err) {
@@ -123,14 +141,25 @@ export function CollectButton() {
             placeholder="Optional topic, e.g. vaccine OR solar OR education"
             disabled={busy !== null}
           />
+          <label className="max-results-field" htmlFor="max-results">
+            Max results
+            <input
+              id="max-results"
+              type="number"
+              min={1}
+              max={25}
+              value={maxResults}
+              onChange={(event) => setMaxResults(Number(event.target.value) || 5)}
+              disabled={busy !== null}
+            />
+          </label>
           <button type="submit" disabled={busy !== null || regions.length === 0}>
             {busy === "web" ? "Searching…" : "Search & collect"}
           </button>
         </div>
         <p className="collect-hint">
-          Built into the site — not Cursor. Searches Google News for positive
-          progress in selected regions, then adds candidates to the validation
-          queue.
+          Searches Google News for positive progress in selected regions (default
+          max 5). If Google News is blocked, falls back to trusted RSS feeds.
         </p>
       </form>
 

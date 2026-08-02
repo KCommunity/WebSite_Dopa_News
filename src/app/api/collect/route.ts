@@ -6,7 +6,7 @@ import {
   DEFAULT_SOURCES,
 } from "@/lib/collection";
 import { FOCUS_REGIONS } from "@/lib/regions";
-import { readStore, writeStore } from "@/lib/store";
+import { getStorageMode, readStore, writeStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -19,16 +19,27 @@ const bodySchema = z.object({
   mode: z.enum(["rss", "web"]).default("rss"),
   query: z.string().trim().max(200).optional(),
   regions: z.array(z.enum(regionIds)).max(5).optional(),
+  maxResults: z.number().int().min(1).max(25).optional(),
 });
 
 export async function POST(request: Request) {
   try {
     const json = await request.json().catch(() => ({}));
-    const { mode, query, regions } = bodySchema.parse(json);
+    const { mode, query, regions, maxResults } = bodySchema.parse(json);
+    const storageMode = getStorageMode();
 
     if (mode === "web") {
-      const result = await collectFromWebSearch(query || "", regions);
-      return NextResponse.json({ ok: true, mode, ...result });
+      const result = await collectFromWebSearch(
+        query || "",
+        regions,
+        maxResults ?? 5,
+      );
+      return NextResponse.json({
+        ok: true,
+        mode,
+        storageMode,
+        ...result,
+      });
     }
 
     const store = await readStore();
@@ -46,6 +57,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       mode: "rss",
+      storageMode,
       ...result,
     });
   } catch (error) {

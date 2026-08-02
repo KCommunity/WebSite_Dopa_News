@@ -1,6 +1,11 @@
 import Parser from "rss-parser";
 import { nanoid } from "nanoid";
-import { classifyArticle, extractKeywords, looksLikeGoodNews } from "./classify";
+import {
+  classifyArticle,
+  extractKeywords,
+  looksLikeGoodNews,
+  looksLikeWebSearchCandidate,
+} from "./classify";
 import { buildExplainability, scoreCredibility, scoreImpact } from "./scoring";
 import { slugify } from "./slugify";
 import {
@@ -216,7 +221,7 @@ function articleFromFeedItem(
   const { title, publisher } = splitTitleAndPublisher(rawTitle);
   const rawSummary = item.contentSnippet || item.summary || item.content || title;
   const summary = summarize(String(rawSummary));
-  if (!looksLikeGoodNews(title, summary)) return null;
+  if (!looksLikeWebSearchCandidate(title, summary)) return null;
 
   const sourceName =
     (typeof item.source === "object" && item.source?.title) ||
@@ -253,13 +258,76 @@ function articleFromFeedItem(
   return article;
 }
 
+async function collectFromTrustedRssFallback(
+  query: string,
+  maxResults: number,
+): Promise<Article[]> {
+  const { readStore } = await import("./store");
+  const store = await readStore();
+  const sources = (store.sources.length ? store.sources : DEFAULT_SOURCES).filter(
+    (source) => source.enabled !== false && source.feedUrl,
+  );
+
+  const terms = query
+    .toLowerCase()
+    .split(/\s+or\s+|[\s,]+/i)
+    .map((term) => term.replace(/[()]/g, "").trim())
+    .filter((term) => term.length > 2);
+
+  const candidates: Article[] = [];
+
+  for (const source of sources) {
+    if (candidates.length >= maxResults) break;
+    try {
+      const feed = await parser.parseURL(source.feedUrl!);
+      for (const item of (feed.items ?? []).slice(0, 20) as FeedItem[]) {
+        if (candidates.length >= maxResults) break;
+        const title = item.title?.trim();
+        const link = item.link?.trim();
+        if (!title || !link) continue;
+        const rawSummary = item.contentSnippet || item.summary || item.content || title;
+        const summary = summarize(String(rawSummary));
+        const haystack = `${title} ${summary}`.toLowerCase();
+        const matchesQuery =
+          terms.length === 0 || terms.some((term) => haystack.includes(term));
+        if (!matchesQuery || !looksLikeGoodNews(title, summary)) continue;
+
+        candidates.push(
+          buildArticle({
+            title,
+            summary,
+            sources: [
+              createArticleSource({
+                id: source.id,
+                name: source.name,
+                url: link,
+                reliability: source.reliability,
+              }),
+            ],
+            collectedAt: item.isoDate || new Date().toISOString(),
+            discoveryMethod: "web_search",
+            searchQuery: query,
+            sourceReliability: source.reliability,
+          }),
+        );
+      }
+    } catch (error) {
+      console.error(`Trusted RSS fallback failed for ${source.name}:`, error);
+    }
+  }
+
+  return candidates;
+}
+
 /**
  * Internet search via Google News RSS across focus regions.
+ * Falls back to trusted RSS feeds when Google News is unavailable.
  * Results enter the editorial queue as pending_validation.
  */
 export async function collectFromWebSearch(
   query: string,
   regionIds?: FocusRegionId[],
+  maxResults = 5,
 ): Promise<{
   fetched: number;
   accepted: number;
@@ -267,29 +335,34 @@ export async function collectFromWebSearch(
   merged: number;
   query: string;
   regions: string[];
+  maxResults: number;
+  channel: "google_news" | "trusted_rss_fallback";
 }> {
   const cleaned = query.trim() || DEFAULT_WEB_SEARCH_TOPIC;
+  const limit = Math.max(1, Math.min(25, Math.round(maxResults)));
   const selectedRegions = FOCUS_REGIONS.filter((region) =>
     regionIds?.length ? regionIds.includes(region.id) : true,
   );
 
   let fetched = 0;
-  let accepted = 0;
   const candidates: Article[] = [];
   const errors: string[] = [];
+  let channel: "google_news" | "trusted_rss_fallback" = "google_news";
 
   for (const region of selectedRegions) {
+    if (candidates.length >= limit) break;
     const searchQuery = buildRegionalSearchQuery(region, cleaned);
     const locale = region.locales[0];
+    const remaining = limit - candidates.length;
 
     try {
       const items = await fetchGoogleNewsFeed(searchQuery, locale);
-      for (const item of items.slice(0, 8)) {
+      for (const item of items.slice(0, Math.max(remaining * 2, remaining))) {
+        if (candidates.length >= limit) break;
         fetched += 1;
         const article = articleFromFeedItem(item, cleaned, region.label);
         if (!article) continue;
         candidates.push(article);
-        accepted += 1;
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "unknown error";
@@ -298,20 +371,36 @@ export async function collectFromWebSearch(
     }
   }
 
+  if (candidates.length === 0) {
+    channel = "trusted_rss_fallback";
+    const fallback = await collectFromTrustedRssFallback(cleaned, limit);
+    fetched += fallback.length;
+    candidates.push(...fallback);
+  }
+
   if (candidates.length === 0 && errors.length > 0) {
     throw new Error(
       `Internet search failed for all regions. ${errors.slice(0, 2).join(" | ")}`,
     );
   }
 
-  const result = await upsertArticles(candidates);
+  if (candidates.length === 0) {
+    throw new Error(
+      "No candidate news found. Try another topic, or use Add news for review.",
+    );
+  }
+
+  const limited = candidates.slice(0, limit);
+  const result = await upsertArticles(limited);
   return {
     fetched,
-    accepted,
+    accepted: limited.length,
     added: result.added,
     merged: result.merged,
     query: cleaned,
     regions: selectedRegions.map((region) => region.label),
+    maxResults: limit,
+    channel,
   };
 }
 

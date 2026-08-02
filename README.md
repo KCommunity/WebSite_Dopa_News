@@ -53,7 +53,8 @@ GitHub = where the code lives.
 ### Before going public
 
 - Protect `/admin` with authentication
-- Replace file storage (`data/store.json`) with a database for production writes
+- Connect **Vercel Blob** (Storage → Blob → connect to project) so search/publish persist via `BLOB_READ_WRITE_TOKEN`
+- Or set `STORE_GITHUB_TOKEN` with repo write access to persist `data/store.json` via GitHub
 
 ## Project docs
 

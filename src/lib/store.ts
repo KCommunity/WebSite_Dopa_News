@@ -1,5 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
+import { put } from "@vercel/blob";
 import { nanoid } from "nanoid";
 import { slugify } from "./slugify";
 import {
@@ -11,10 +12,18 @@ import type { Article, EditorialStatus, Source, StoreData } from "./types";
 
 const SEED_PATH = path.join(process.cwd(), "data", "store.json");
 const LOCAL_PATH = path.join(process.cwd(), "data", "store.json");
-const VERCEL_PATH = path.join("/tmp", "dopa-store.json");
+const VERCEL_TMP_PATH = path.join("/tmp", "dopa-store.json");
+const BLOB_PATHNAME = "dopa-store.json";
 
-function writableStorePath(): string {
-  return process.env.VERCEL ? VERCEL_PATH : LOCAL_PATH;
+type StorageMode = "blob" | "github" | "file" | "memory";
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __dopaStoreCache: StoreData | undefined;
+  // eslint-disable-next-line no-var
+  var __dopaStoreSha: string | undefined;
+  // eslint-disable-next-line no-var
+  var __dopaBlobUrl: string | undefined;
 }
 
 function normalizeTitle(title: string): string {
@@ -26,48 +35,195 @@ function normalizeTitle(title: string): string {
     .slice(0, 96);
 }
 
-async function readJsonFile(filePath: string): Promise<StoreData | null> {
+function emptyStore(): StoreData {
+  return {
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    sources: [],
+    articles: [],
+  };
+}
+
+async function readSeed(): Promise<StoreData> {
   try {
-    const raw = await fs.readFile(filePath, "utf8");
+    const raw = await fs.readFile(SEED_PATH, "utf8");
+    return JSON.parse(raw) as StoreData;
+  } catch {
+    return emptyStore();
+  }
+}
+
+function detectStorageMode(): StorageMode {
+  if (process.env.BLOB_READ_WRITE_TOKEN) return "blob";
+  if (process.env.STORE_GITHUB_TOKEN || process.env.GITHUB_TOKEN) return "github";
+  if (process.env.VERCEL) return "memory";
+  return "file";
+}
+
+export function getStorageMode(): StorageMode {
+  return detectStorageMode();
+}
+
+async function readFromGitHub(): Promise<{ data: StoreData; sha?: string } | null> {
+  const token = process.env.STORE_GITHUB_TOKEN || process.env.GITHUB_TOKEN;
+  if (!token) return null;
+
+  const owner = process.env.STORE_GITHUB_OWNER || "KCommunity";
+  const repo = process.env.STORE_GITHUB_REPO || "WebSite_Dopa_News";
+  const filePath = process.env.STORE_GITHUB_PATH || "data/store.json";
+
+  const response = await fetch(
+    `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "User-Agent": "DopaNews",
+      },
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) return null;
+  const payload = (await response.json()) as { content?: string; sha?: string };
+  if (!payload.content) return null;
+  const json = Buffer.from(payload.content, "base64").toString("utf8");
+  return { data: JSON.parse(json) as StoreData, sha: payload.sha };
+}
+
+async function writeToGitHub(data: StoreData): Promise<void> {
+  const token = process.env.STORE_GITHUB_TOKEN || process.env.GITHUB_TOKEN;
+  if (!token) throw new Error("Missing STORE_GITHUB_TOKEN for durable storage");
+
+  const owner = process.env.STORE_GITHUB_OWNER || "KCommunity";
+  const repo = process.env.STORE_GITHUB_REPO || "WebSite_Dopa_News";
+  const filePath = process.env.STORE_GITHUB_PATH || "data/store.json";
+  const sha = globalThis.__dopaStoreSha;
+
+  const response = await fetch(
+    `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "User-Agent": "DopaNews",
+      },
+      body: JSON.stringify({
+        message: "chore: update Dopa News knowledge store",
+        content: Buffer.from(JSON.stringify(data, null, 2), "utf8").toString("base64"),
+        sha,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`GitHub store write failed: ${response.status} ${detail}`);
+  }
+
+  const payload = (await response.json()) as { content?: { sha?: string } };
+  globalThis.__dopaStoreSha = payload.content?.sha;
+}
+
+async function readFromBlob(): Promise<StoreData | null> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return null;
+
+  const knownUrl = globalThis.__dopaBlobUrl || process.env.DOPA_BLOB_STORE_URL;
+  if (knownUrl) {
+    const response = await fetch(knownUrl, { cache: "no-store" });
+    if (response.ok) {
+      return (await response.json()) as StoreData;
+    }
+  }
+
+  return null;
+}
+
+async function writeToBlob(data: StoreData): Promise<void> {
+  const blob = await put(BLOB_PATHNAME, JSON.stringify(data, null, 2), {
+    access: "public",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "application/json",
+    token: process.env.BLOB_READ_WRITE_TOKEN,
+  });
+  globalThis.__dopaBlobUrl = blob.url;
+}
+
+async function readFromFile(): Promise<StoreData | null> {
+  const target = process.env.VERCEL ? VERCEL_TMP_PATH : LOCAL_PATH;
+  try {
+    const raw = await fs.readFile(target, "utf8");
     return JSON.parse(raw) as StoreData;
   } catch {
     return null;
   }
 }
 
-async function ensureStore(): Promise<StoreData> {
-  const target = writableStorePath();
-  const existing = await readJsonFile(target);
-  if (existing) return existing;
+async function writeToFile(data: StoreData): Promise<void> {
+  const target = process.env.VERCEL ? VERCEL_TMP_PATH : LOCAL_PATH;
+  await fs.mkdir(path.dirname(target), { recursive: true });
+  await fs.writeFile(target, JSON.stringify(data, null, 2), "utf8");
+}
 
-  const seed = await readJsonFile(SEED_PATH);
-  const data: StoreData = seed ?? {
-    version: 1,
-    updatedAt: new Date().toISOString(),
-    sources: [],
-    articles: [],
-  };
+async function loadStore(): Promise<StoreData> {
+  if (globalThis.__dopaStoreCache) {
+    return globalThis.__dopaStoreCache;
+  }
 
-  await persist(data);
+  const mode = detectStorageMode();
+  let data: StoreData | null = null;
+
+  if (mode === "blob") {
+    data = await readFromBlob();
+  } else if (mode === "github") {
+    const github = await readFromGitHub();
+    if (github) {
+      data = github.data;
+      globalThis.__dopaStoreSha = github.sha;
+    }
+  } else {
+    data = await readFromFile();
+  }
+
+  if (!data) {
+    data = await readSeed();
+  }
+
+  globalThis.__dopaStoreCache = data;
   return data;
 }
 
 async function persist(data: StoreData): Promise<void> {
   data.updatedAt = new Date().toISOString();
-  const target = writableStorePath();
+  globalThis.__dopaStoreCache = data;
+
+  const mode = detectStorageMode();
+  if (mode === "blob") {
+    await writeToBlob(data);
+    return;
+  }
+  if (mode === "github") {
+    await writeToGitHub(data);
+    return;
+  }
+  if (mode === "file") {
+    await writeToFile(data);
+    return;
+  }
+
+  // memory mode on Vercel without durable backend
   try {
-    await fs.mkdir(path.dirname(target), { recursive: true });
-    await fs.writeFile(target, JSON.stringify(data, null, 2), "utf8");
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "unknown error";
-    throw new Error(
-      `Could not save knowledge store (${message}). On Vercel, writable storage must use /tmp or a database.`,
-    );
+    await writeToFile(data);
+  } catch {
+    // Keep memory cache even if /tmp fails.
   }
 }
 
 export async function readStore(): Promise<StoreData> {
-  return ensureStore();
+  return loadStore();
 }
 
 export async function writeStore(data: StoreData): Promise<void> {
@@ -133,7 +289,6 @@ export async function upsertArticles(articles: Article[]): Promise<{
       continue;
     }
 
-    // Exact same URL already known: only merge into open review items.
     const sameUrl = getArticleSources(existing).some((source) =>
       incomingSources.some((incoming) => incoming.url === source.url),
     );
@@ -142,7 +297,6 @@ export async function upsertArticles(articles: Article[]): Promise<{
       continue;
     }
 
-    // Similar title on an already published/rejected story: add a fresh review candidate.
     if (!MERGEABLE_STATUSES.has(existing.status) && !sameUrl) {
       store.articles.unshift(applyPrimarySource(article, incomingSources));
       added += 1;

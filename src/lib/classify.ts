@@ -13,6 +13,27 @@ export function looksLikeGoodNews(title: string, summary: string): boolean {
   return POSITIVE_SIGNALS.test(text) || text.length > 40;
 }
 
+/** Softer filter for web search candidates — reject clear negatives, keep hopeful/progress stories. */
+export function looksLikeWebSearchCandidate(title: string, summary: string): boolean {
+  const text = `${title} ${summary}`;
+  if (
+    /(murder|war crime|massacre|terror attack|stock plunge|celebrity divorce|clickbait|gore|killed in)/i.test(
+      text,
+    )
+  ) {
+    return false;
+  }
+  if (POSITIVE_SIGNALS.test(text)) return true;
+  if (
+    /(good news|positive|hope|helps|helping|launch|opens|opened|award|recovery|restores|restored|protects|protected|innovation|breakthrough|donation|volunteer)/i.test(
+      text,
+    )
+  ) {
+    return true;
+  }
+  return text.trim().length > 35;
+}
+
 export function classifyArticle(title: string, summary: string): CategorySlug {
   const text = `${title} ${summary}`.toLowerCase();
   let best: CategorySlug = "community";

@@ -4,7 +4,12 @@ import { ManualNewsForm } from "@/components/ManualNewsForm";
 import { TrustedSourcesPanel } from "@/components/TrustedSourcesPanel";
 import { formatDate } from "@/lib/format";
 import { getArticleSources } from "@/lib/sources";
-import { listArticlesByStatus, listPublishedArticles, readStore } from "@/lib/store";
+import {
+  getStorageMode,
+  listArticlesByStatus,
+  listPublishedArticles,
+  readStore,
+} from "@/lib/store";
 import { getCategoryName } from "@/lib/taxonomy";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +24,7 @@ export default async function AdminPage() {
     listPublishedArticles(),
     readStore(),
   ]);
+  const storageMode = getStorageMode();
 
   return (
     <section className="admin-page">
@@ -33,6 +39,13 @@ export default async function AdminPage() {
             News are not collected automatically every day yet. Use RSS
             collection, internet search, or add a story manually below.
           </p>
+          {storageMode === "memory" ? (
+            <p className="form-error">
+              Durable storage is not configured on this host. Collected news may
+              disappear after refresh. In Vercel: Storage → create Blob → connect
+              to this project (adds BLOB_READ_WRITE_TOKEN), then redeploy.
+            </p>
+          ) : null}
         </div>
 
         <div className="stats-row">
