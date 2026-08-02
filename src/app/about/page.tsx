@@ -15,10 +15,10 @@ export default function AboutPage() {
         </div>
         <div className="article-body">
           <p>
-            Dopa News (dopa.news) is the public face of the Good News Knowledge
-            Platform. We collect inspiring, credible stories of progress from
-            around the world, prepare them with AI assistance, and publish only
-            after human editorial approval.
+            Dopa News (dopa.news) is the public face of the Good News Platform.
+            We collect inspiring, credible stories of progress from around the
+            world, prepare them with AI assistants, and publish only after human
+            editorial approval.
           </p>
           <p>
             We are not here to publish every cheerful headline. We look for
@@ -27,7 +27,7 @@ export default function AboutPage() {
             sensationalism, propaganda, and unverified claims.
           </p>
           <p>
-            Hermes coordinates collection and enrichment. Editors remain
+            AI assistants help with collection and enrichment. Editors remain
             responsible for what reaches readers.
           </p>
         </div>

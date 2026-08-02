@@ -2,12 +2,12 @@
 
 Your daily good news.
 
-Public Phase 1 MVP of the **Good News Knowledge Platform (GNKP)**.
+Public Phase 1 MVP of the **Good News Platform**.
 
 - **Site:** [https://dopa.news](https://dopa.news)
 - **Repo:** `WebSite_Dopa_News`
 
-Hermes (and the Phase 1 collection pipeline) gathers and prepares stories. Humans approve what gets published.
+AI assistants and the Phase 1 collection pipeline gather and prepare stories. Humans approve what gets published.
 
 ## Quick start
 

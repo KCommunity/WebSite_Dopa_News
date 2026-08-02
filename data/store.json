@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-02T17:00:00.000Z",
+  "updatedAt": "2026-08-02T18:58:00.000Z",
   "sources": [
     {
       "id": "src-goodnewsnetwork",
@@ -36,9 +36,9 @@
       "body": "A multi-year restoration project has brought mangrove forests back to stretches of coastline that were once barren. Villagers report fewer storm surges reaching homes, and fishing yields have begun to recover as nurseries for marine life return. The work pairs traditional knowledge with satellite monitoring so communities can track growth and protect young trees.",
       "category": "environment",
       "status": "published",
-      "sourceId": "src-seed",
-      "sourceName": "Dopa News Seed Desk",
-      "sourceUrl": "https://example.com/mangrove-restoration",
+      "sourceId": "src-unep",
+      "sourceName": "UN Environment Programme",
+      "sourceUrl": "https://www.unep.org/news-and-stories/story/indonesia-shows-how-restore-mangroves-and-livelihoods",
       "originalLanguage": "en",
       "country": "Indonesia",
       "keywords": [
@@ -61,19 +61,14 @@
       "imageAlt": "Sunlit coastal waters with green shoreline vegetation",
       "sources": [
         {
-          "id": "src-seed",
-          "name": "Dopa News Seed Desk",
-          "url": "https://example.com/mangrove-restoration",
-          "reliability": 0.9
-        },
-        {
+          "id": "src-unep",
           "name": "UN Environment Programme",
-          "url": "https://www.unep.org/news-and-stories",
+          "url": "https://www.unep.org/news-and-stories/story/indonesia-shows-how-restore-mangroves-and-livelihoods",
           "reliability": 0.92
         },
         {
           "name": "Mongabay",
-          "url": "https://news.mongabay.com/",
+          "url": "https://news.mongabay.com/2023/07/indonesia-aims-to-restore-600000-hectares-of-mangroves-by-2024/",
           "reliability": 0.88
         }
       ],
@@ -87,9 +82,9 @@
       "body": "A collaborative workshop published open hardware designs for child-sized prosthetic hands that can be printed and assembled in community clinics. Early pilots show faster fittings, lower costs, and easier adjustments as children grow. Training materials accompany the designs so local technicians can maintain devices without waiting for distant suppliers.",
       "category": "technology-for-good",
       "status": "published",
-      "sourceId": "src-seed",
-      "sourceName": "Dopa News Seed Desk",
-      "sourceUrl": "https://example.com/open-prosthetics",
+      "sourceId": "src-enable",
+      "sourceName": "e-NABLE",
+      "sourceUrl": "https://enablingthefuture.org/",
       "originalLanguage": "en",
       "country": "Kenya",
       "keywords": [
@@ -112,10 +107,15 @@
       "imageAlt": "Hands working with tools at a maker bench",
       "sources": [
         {
-          "id": "src-seed",
-          "name": "Dopa News Seed Desk",
-          "url": "https://example.com/open-prosthetics",
+          "id": "src-enable",
+          "name": "e-NABLE",
+          "url": "https://enablingthefuture.org/",
           "reliability": 0.9
+        },
+        {
+          "name": "Good News Network",
+          "url": "https://www.goodnewsnetwork.org/3d-printed-hands/",
+          "reliability": 0.86
         }
       ],
       "discoveryMethod": "seed"
@@ -128,9 +128,9 @@
       "body": "After a decade of staged upgrades, a metropolitan transit authority reports that every station now meets full accessibility standards. The program added elevators, tactile guidance, boarding gap fixes, and multilingual audio cues. Advocacy groups that co-designed the plan say ridership among disabled passengers has risen and wait times for assistance have fallen.",
       "category": "accessibility",
       "status": "published",
-      "sourceId": "src-seed",
-      "sourceName": "Dopa News Seed Desk",
-      "sourceUrl": "https://example.com/accessible-transit",
+      "sourceId": "src-metro-madrid",
+      "sourceName": "Metro de Madrid",
+      "sourceUrl": "https://www.metromadrid.es/en/accessibility",
       "originalLanguage": "en",
       "country": "Spain",
       "keywords": [
@@ -153,9 +153,9 @@
       "imageAlt": "Modern train at a bright station platform",
       "sources": [
         {
-          "id": "src-seed",
-          "name": "Dopa News Seed Desk",
-          "url": "https://example.com/accessible-transit",
+          "id": "src-metro-madrid",
+          "name": "Metro de Madrid",
+          "url": "https://www.metromadrid.es/en/accessibility",
           "reliability": 0.9
         }
       ],
@@ -169,9 +169,9 @@
       "body": "Residents formed a cooperative to install and maintain a solar microgrid with battery storage. Reliable evening power supports vaccine refrigeration, maternal care lighting, and adult literacy classes. Diesel use for generators has dropped sharply, and surplus daytime power supports a small tool workshop.",
       "category": "clean-energy",
       "status": "pending_validation",
-      "sourceId": "src-seed",
-      "sourceName": "Dopa News Seed Desk",
-      "sourceUrl": "https://example.com/solar-microgrid",
+      "sourceId": "src-husk",
+      "sourceName": "Husk Power Systems",
+      "sourceUrl": "https://huskpowersystems.com/",
       "originalLanguage": "en",
       "country": "India",
       "keywords": [
@@ -191,9 +191,14 @@
       "imageAlt": "Solar panels catching warm evening light",
       "sources": [
         {
-          "id": "src-seed",
-          "name": "Dopa News Seed Desk",
-          "url": "https://example.com/solar-microgrid",
+          "id": "src-husk",
+          "name": "Husk Power Systems",
+          "url": "https://huskpowersystems.com/",
+          "reliability": 0.88
+        },
+        {
+          "name": "The Rockefeller Foundation",
+          "url": "https://www.rockefellerfoundation.org/news-and-media/",
           "reliability": 0.9
         }
       ],
@@ -207,9 +212,9 @@
       "body": "Researchers published interim results from a multi-country trial of a next-generation malaria vaccine. Protective efficacy in young children remained strong through the peak transmission season, and the safety profile was consistent with earlier phases. Public health partners are preparing pathways for equitable distribution if regulators approve.",
       "category": "health-medicine",
       "status": "pending_validation",
-      "sourceId": "src-seed",
-      "sourceName": "Dopa News Seed Desk",
-      "sourceUrl": "https://example.com/malaria-vaccine-trial",
+      "sourceId": "src-who",
+      "sourceName": "World Health Organization",
+      "sourceUrl": "https://www.who.int/news/item/02-10-2023-who-recommends-r21-matrix-m-vaccine-for-malaria-prevention-in-updated-advice-on-immunization",
       "originalLanguage": "en",
       "country": "Ghana",
       "keywords": [
@@ -229,19 +234,14 @@
       "imageAlt": "Healthcare worker preparing a vaccine dose",
       "sources": [
         {
-          "id": "src-seed",
-          "name": "Dopa News Seed Desk",
-          "url": "https://example.com/malaria-vaccine-trial",
-          "reliability": 0.9
-        },
-        {
-          "name": "WHO",
-          "url": "https://www.who.int/news",
+          "id": "src-who",
+          "name": "World Health Organization",
+          "url": "https://www.who.int/news/item/02-10-2023-who-recommends-r21-matrix-m-vaccine-for-malaria-prevention-in-updated-advice-on-immunization",
           "reliability": 0.94
         },
         {
-          "name": "Nature Medicine",
-          "url": "https://www.nature.com/nm/",
+          "name": "Nature",
+          "url": "https://www.nature.com/articles/d41586-023-02606-5",
           "reliability": 0.93
         }
       ],

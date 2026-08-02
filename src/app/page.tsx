@@ -45,8 +45,8 @@ export default async function HomePage() {
           <div className="section-head">
             <h2>{featured ? "Featured today" : "Latest good news"}</h2>
             <p>
-              Every story below has been reviewed by a human editor. Hermes helps
-              gather and prepare — people decide what goes live.
+              Every story below has been reviewed by a human editor. AI
+              assistants help gather and prepare — people decide what goes live.
             </p>
           </div>
           {featured ? (

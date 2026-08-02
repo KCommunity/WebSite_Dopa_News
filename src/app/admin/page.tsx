@@ -24,8 +24,8 @@ export default async function AdminPage() {
         <div className="section-head">
           <h1 className="page-title">Editorial desk</h1>
           <p className="lede">
-            Hermes prepares candidates. Humans edit, check sources, and approve
-            publication. Nothing goes live without review.
+            AI assistants prepare candidates. Humans edit, check sources, and
+            approve publication. Nothing goes live without review.
           </p>
         </div>
 
