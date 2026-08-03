@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     template: "%s · Dopa News",
   },
   description:
-    "Your daily good news — a collaborative platform that discovers, validates, and publishes credible good news from around the world.",
+    "Your daily good news — recent stories of personal triumph, health wins, happy endings, happy families, and new energy, validated before publication.",
   metadataBase: new URL("https://dopa.news"),
 };
 

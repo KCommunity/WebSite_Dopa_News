@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-02T18:58:00.000Z",
+  "updatedAt": "2026-08-01T12:00:00.000Z",
   "sources": [
     {
       "id": "src-goodnewsnetwork",
@@ -163,92 +163,6 @@
           "name": "Metro de Madrid",
           "url": "https://www.metromadrid.es/en/accessibility",
           "reliability": 0.9
-        }
-      ],
-      "discoveryMethod": "seed"
-    },
-    {
-      "id": "seed-004",
-      "slug": "village-solar-microgrid-powers-night-classes",
-      "title": "Village solar microgrid powers clinics and night classes",
-      "summary": "A community-owned solar microgrid now keeps a rural clinic cold-chain running and lets students study after sunset without diesel generators.",
-      "body": "Residents formed a cooperative to install and maintain a solar microgrid with battery storage. Reliable evening power supports vaccine refrigeration, maternal care lighting, and adult literacy classes. Diesel use for generators has dropped sharply, and surplus daytime power supports a small tool workshop.",
-      "category": "clean-energy",
-      "status": "pending_validation",
-      "sourceId": "src-husk",
-      "sourceName": "Husk Power Systems",
-      "sourceUrl": "https://huskpowersystems.com/",
-      "originalLanguage": "en",
-      "country": "India",
-      "keywords": [
-        "solar",
-        "microgrid",
-        "education",
-        "clinic",
-        "cooperative"
-      ],
-      "impactScore": 87,
-      "credibilityScore": 88,
-      "explainability": "Selected because clean energy access here clearly improves health services and education, with community ownership that supports durability.",
-      "collectedAt": "2026-08-02T07:00:00.000Z",
-      "processedAt": "2026-08-02T07:10:00.000Z",
-      "featured": false,
-      "imageUrl": "https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&w=1600&q=80",
-      "imageAlt": "Solar panels catching warm evening light",
-      "sources": [
-        {
-          "id": "src-husk",
-          "name": "Husk Power Systems",
-          "url": "https://huskpowersystems.com/",
-          "reliability": 0.88
-        },
-        {
-          "name": "The Rockefeller Foundation",
-          "url": "https://www.rockefellerfoundation.org/news-and-media/",
-          "reliability": 0.9
-        }
-      ],
-      "discoveryMethod": "seed"
-    },
-    {
-      "id": "seed-005",
-      "slug": "new-malaria-trial-shows-strong-protection",
-      "title": "New malaria vaccine trial shows strong protection in children",
-      "summary": "A multi-country trial reports high protective efficacy for a next-generation malaria vaccine candidate among young children in high-transmission regions.",
-      "body": "Researchers published interim results from a multi-country trial of a next-generation malaria vaccine. Protective efficacy in young children remained strong through the peak transmission season, and the safety profile was consistent with earlier phases. Public health partners are preparing pathways for equitable distribution if regulators approve.",
-      "category": "health-medicine",
-      "status": "pending_validation",
-      "sourceId": "src-who",
-      "sourceName": "World Health Organization",
-      "sourceUrl": "https://www.who.int/news/item/02-10-2023-who-recommends-r21-matrix-m-vaccine-for-malaria-prevention-in-updated-advice-on-immunization",
-      "originalLanguage": "en",
-      "country": "Ghana",
-      "keywords": [
-        "malaria",
-        "vaccine",
-        "children",
-        "trial",
-        "public health"
-      ],
-      "impactScore": 92,
-      "credibilityScore": 93,
-      "explainability": "Selected for high scientific and human impact, peer-style trial framing, and strong public-health relevance. Requires editorial confirmation of source claims before publishing.",
-      "collectedAt": "2026-08-02T06:30:00.000Z",
-      "processedAt": "2026-08-02T06:40:00.000Z",
-      "featured": false,
-      "imageUrl": "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1600&q=80",
-      "imageAlt": "Healthcare worker preparing a vaccine dose",
-      "sources": [
-        {
-          "id": "src-who",
-          "name": "World Health Organization",
-          "url": "https://www.who.int/news/item/02-10-2023-who-recommends-r21-matrix-m-vaccine-for-malaria-prevention-in-updated-advice-on-immunization",
-          "reliability": 0.94
-        },
-        {
-          "name": "Nature",
-          "url": "https://www.nature.com/articles/d41586-023-02606-5",
-          "reliability": 0.93
         }
       ],
       "discoveryMethod": "seed"

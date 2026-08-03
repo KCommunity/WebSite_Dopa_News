@@ -15,6 +15,11 @@ import {
 } from "./sources";
 import {
   DEFAULT_WEB_SEARCH_TOPIC,
+  EDITORIAL_THEMES,
+  isRecentEnough,
+  matchesEditorialTopic,
+} from "./editorial-focus";
+import {
   FOCUS_REGIONS,
   buildRegionalSearchQuery,
   type FocusRegionId,
@@ -88,20 +93,6 @@ function splitTitleAndPublisher(rawTitle: string): { title: string; publisher?: 
     title: parts.join(" - ").trim(),
     publisher: publisher || undefined,
   };
-}
-
-function queryTerms(query: string): string[] {
-  return query
-    .toLowerCase()
-    .split(/\s+or\s+|[\s,]+/i)
-    .map((term) => term.replace(/[()"/]/g, "").trim())
-    .filter((term) => term.length > 2);
-}
-
-function matchesTopic(title: string, summary: string, terms: string[]): boolean {
-  if (terms.length === 0) return true;
-  const haystack = `${title} ${summary}`.toLowerCase();
-  return terms.some((term) => haystack.includes(term));
 }
 
 function buildArticle(params: {
@@ -240,6 +231,7 @@ function articleFromFeedItem(
   const { title, publisher } = splitTitleAndPublisher(rawTitle);
   const rawSummary = item.contentSnippet || item.summary || item.content || title;
   const summary = summarize(String(rawSummary));
+  if (!isRecentEnough(item.isoDate)) return null;
   if (!looksLikeWebSearchCandidate(title, summary)) return null;
 
   const sourceName =
@@ -280,7 +272,6 @@ async function collectFromTrustedRss(
     (source) => source.enabled !== false && source.feedUrl,
   );
 
-  const terms = queryTerms(query);
   const candidates: Article[] = [];
 
   await Promise.all(
@@ -293,11 +284,12 @@ async function collectFromTrustedRss(
           if (!title || !link) continue;
           const rawSummary = item.contentSnippet || item.summary || item.content || title;
           const summary = summarize(String(rawSummary));
+          if (!isRecentEnough(item.isoDate)) continue;
           if (!looksLikeGoodNews(title, summary) && !looksLikeWebSearchCandidate(title, summary)) {
             continue;
           }
           // Topic filter is strict for RSS fallback so subject search stays relevant.
-          if (!matchesTopic(title, summary, terms)) continue;
+          if (!matchesEditorialTopic(title, summary, query)) continue;
 
           candidates.push(
             buildArticle({
@@ -367,16 +359,28 @@ export async function collectFromWebSearch(
   let googleCandidates: Article[] = [];
   let rssCandidates: Article[] = [];
 
-  // 1) Google News for EVERY selected region (parallel) — this is what region chips control.
-  const perRegion = Math.max(2, Math.ceil(limit / Math.max(1, selectedRegions.length)) + 1);
+  // Blank / default search sweeps each editorial theme; custom subjects use the typed query.
+  const themeSweep =
+    !query.trim() || cleaned === DEFAULT_WEB_SEARCH_TOPIC;
+  const topicQueries = themeSweep
+    ? EDITORIAL_THEMES.map((theme) => theme.query)
+    : [cleaned];
+  const regionSlice = themeSweep
+    ? selectedRegions.slice(0, Math.min(3, selectedRegions.length))
+    : selectedRegions;
+  const perFetch = themeSweep ? 2 : Math.max(2, Math.ceil(limit / Math.max(1, regionSlice.length)) + 1);
+
+  // 1) Google News (last 7 days) for selected regions × topics.
   const settled = await Promise.allSettled(
-    selectedRegions.map(async (region) => {
-      const searchQuery = buildRegionalSearchQuery(region, cleaned);
-      const items = await fetchGoogleNewsFeed(searchQuery, region.locales[0]);
-      return items.slice(0, perRegion).map((item) =>
-        articleFromFeedItem(item, cleaned, region.label),
-      );
-    }),
+    topicQueries.flatMap((topic) =>
+      regionSlice.map(async (region) => {
+        const searchQuery = buildRegionalSearchQuery(region, topic);
+        const items = await fetchGoogleNewsFeed(searchQuery, region.locales[0]);
+        return items.slice(0, perFetch).map((item) =>
+          articleFromFeedItem(item, topic, region.label),
+        );
+      }),
+    ),
   );
 
   for (const result of settled) {
@@ -391,11 +395,14 @@ export async function collectFromWebSearch(
     }
   }
 
+  // Prefer newest first.
+  googleCandidates.sort((a, b) => b.collectedAt.localeCompare(a.collectedAt));
   let candidates = dedupeCandidates(googleCandidates).slice(0, limit);
 
   // 2) Fill gaps from trusted RSS (topic-matched), still tagged with search query.
   if (candidates.length < limit) {
     rssCandidates = await collectFromTrustedRss(cleaned, limit);
+    rssCandidates.sort((a, b) => b.collectedAt.localeCompare(a.collectedAt));
     fetched += rssCandidates.length;
     candidates = dedupeCandidates([...candidates, ...rssCandidates]).slice(0, limit);
   }

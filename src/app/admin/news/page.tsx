@@ -28,13 +28,13 @@ export default async function AdminNewsPage() {
   return (
     <AdminShell
       title="News"
-      lede="Search the internet for a subject, review candidates, then publish the ones you approve."
+      lede="Find very recent stories of personal triumph, health wins, happy endings, happy families, and new energy — then publish the ones you approve."
       active="news"
       notice={
         <>
           <p className="collect-hint">
-            Flow: Search & collect → edit in the validation queue → Approve &
-            publish. Manage outlets on{" "}
+            Flow: Search & collect (last 7 days) → edit in the validation queue
+            → Approve & publish. Manage outlets on{" "}
             <a href="/admin/sources">Sources</a>.
           </p>
           {storageMode === "memory" ? (

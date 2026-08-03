@@ -155,7 +155,19 @@ export function AdminArticleEditor({
       onResolved?.(action === "publish" ? "published" : "rejected");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Action failed");
+      // Reject/remove should still clear the queue item even if the server
+      // store is ephemeral and the write did not stick.
+      if (action === "reject") {
+        onResolved?.("rejected");
+        setError(
+          err instanceof Error
+            ? `${err.message} Removed from your queue anyway.`
+            : "Removed from your queue.",
+        );
+        router.refresh();
+      } else {
+        setError(err instanceof Error ? err.message : "Action failed");
+      }
     } finally {
       setBusy(null);
     }
@@ -189,7 +201,7 @@ export function AdminArticleEditor({
               disabled={busy !== null}
               onClick={() => act("reject")}
             >
-              Reject
+              {busy === "reject" ? "Removing…" : "Reject & remove"}
             </button>
           </div>
           {showLinks ? (
@@ -368,12 +380,20 @@ export function AdminArticleEditor({
               type="button"
               className="ghost"
               disabled={busy !== null}
+              onClick={() => act("reject")}
+            >
+              {busy === "reject" ? "Removing…" : "Reject & remove"}
+            </button>
+            <button
+              type="button"
+              className="ghost"
+              disabled={busy !== null}
               onClick={() => {
                 setEditing(false);
                 setError(null);
               }}
             >
-              Cancel
+              Close editor
             </button>
           </div>
         </form>

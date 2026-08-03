@@ -26,8 +26,9 @@ export default async function HomePage() {
         <div className="shell hero-content">
           <h1 className="hero-brand">Dopa News</h1>
           <p className="hero-lead">
-            Your daily good news — credible stories of progress, hope, and human
-            ingenuity, never published without editorial approval.
+            Your daily good news — recent stories of personal triumph, health
+            wins, happy endings, family joy, and new energy. Never published
+            without editorial approval.
           </p>
           <div className="cta-row">
             <Link href="/news" className="button">

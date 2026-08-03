@@ -3,7 +3,10 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  DEFAULT_WEB_SEARCH_TOPIC,
+  EDITORIAL_THEMES,
+  type EditorialThemeId,
+} from "@/lib/editorial-focus";
+import {
   FOCUS_REGIONS,
   type FocusRegionId,
 } from "@/lib/regions";
@@ -14,7 +17,10 @@ export function CollectButton() {
   const router = useRouter();
   const { addPending } = usePendingQueue();
   const [busy, setBusy] = useState<"rss" | "web" | null>(null);
-  const [query, setQuery] = useState(DEFAULT_WEB_SEARCH_TOPIC);
+  const [activeTheme, setActiveTheme] = useState<EditorialThemeId | "all">(
+    "all",
+  );
+  const [query, setQuery] = useState("");
   const [maxResults, setMaxResults] = useState(5);
   const [regions, setRegions] = useState<FocusRegionId[]>(
     FOCUS_REGIONS.map((region) => region.id),
@@ -28,6 +34,26 @@ export function CollectButton() {
       }
       return [...current, id];
     });
+  }
+
+  function selectTheme(id: EditorialThemeId | "all") {
+    setActiveTheme(id);
+    if (id === "all") {
+      setQuery("");
+      return;
+    }
+    const theme = EDITORIAL_THEMES.find((item) => item.id === id);
+    if (theme) setQuery(theme.query);
+  }
+
+  function resolveSearchQuery(): string {
+    const typed = query.trim();
+    if (typed) return typed;
+    if (activeTheme !== "all") {
+      return EDITORIAL_THEMES.find((theme) => theme.id === activeTheme)?.query ?? "";
+    }
+    // Empty = server uses the full multi-theme default (last 7 days).
+    return "";
   }
 
   async function collectRss() {
@@ -69,7 +95,7 @@ export function CollectButton() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode: "web",
-          query,
+          query: resolveSearchQuery(),
           regions,
           maxResults: Number(maxResults) || 5,
         }),
@@ -99,13 +125,13 @@ export function CollectButton() {
           : payload.channel === "mixed"
             ? " (Google News + trusted RSS)"
             : payload.channel === "google_news"
-              ? " (Google News)"
+              ? " (Google News, last 7 days)"
               : "";
 
       setMessage(
         articles.length > 0
-          ? `Added ${articles.length} news item(s)${regionNote}${channelNote}. Review them in the validation queue below.`
-          : `Search finished with no new items (fetched ${payload.fetched}, accepted ${payload.accepted}). Try another subject.`,
+          ? `Added ${articles.length} recent news item(s)${regionNote}${channelNote}. Review them below.`
+          : `Search finished with no new items (fetched ${payload.fetched}, accepted ${payload.accepted}). Try another theme or subject.`,
       );
       router.refresh();
     } catch (err) {
@@ -124,7 +150,40 @@ export function CollectButton() {
       </div>
 
       <form className="web-search-form" onSubmit={collectWeb}>
-        <label htmlFor="web-query">Internet search by subject</label>
+        <label htmlFor="web-query">Internet search — recent news</label>
+        <p className="collect-hint">
+          Focus lines: personal triumph, health wins, happy endings, happy
+          family stories, and new energy. Results prefer the last 7 days from
+          newspapers and news sites (Google News). Social-network APIs are not
+          connected yet.
+        </p>
+
+        <div className="region-chips" role="group" aria-label="Story themes">
+          <button
+            type="button"
+            className={activeTheme === "all" ? "region-chip active" : "region-chip"}
+            onClick={() => selectTheme("all")}
+            disabled={busy !== null}
+          >
+            All focus lines
+          </button>
+          {EDITORIAL_THEMES.map((theme) => {
+            const active = activeTheme === theme.id;
+            return (
+              <button
+                key={theme.id}
+                type="button"
+                className={active ? "region-chip active" : "region-chip"}
+                onClick={() => selectTheme(theme.id)}
+                disabled={busy !== null}
+                title={theme.description}
+              >
+                {theme.label}
+              </button>
+            );
+          })}
+        </div>
+
         <div className="region-chips" role="group" aria-label="Focus regions">
           {FOCUS_REGIONS.map((region) => {
             const active = regions.includes(region.id);
@@ -141,12 +200,16 @@ export function CollectButton() {
             );
           })}
         </div>
+
         <div className="web-search-row">
           <input
             id="web-query"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Subject, e.g. solar energy OR vaccine"
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setActiveTheme("all");
+            }}
+            placeholder="Optional subject, or leave blank for all focus lines"
             disabled={busy !== null}
           />
           <label className="max-results-field" htmlFor="max-results">
@@ -165,11 +228,6 @@ export function CollectButton() {
             {busy === "web" ? "Searching…" : "Search & collect"}
           </button>
         </div>
-        <p className="collect-hint">
-          Searches Google News for each selected region and your subject, then
-          fills gaps from trusted RSS. New items appear in the validation queue
-          below — edit, then publish the ones you like.
-        </p>
       </form>
 
       {message ? <p className="collect-message">{message}</p> : null}

@@ -1,3 +1,8 @@
+import {
+  GOOGLE_NEWS_RECENCY,
+  POSITIVE_NEWS_TERMS,
+} from "./editorial-focus";
+
 export type FocusRegionId =
   | "europe"
   | "north-america"
@@ -65,8 +70,7 @@ export const FOCUS_REGIONS: FocusRegion[] = [
   },
 ];
 
-export const POSITIVE_NEWS_TERMS =
-  "(\"good news\" OR breakthrough OR restoration OR restored OR vaccine OR renewable OR solar OR conservation OR accessibility OR humanitarian OR education OR wildlife OR \"clean energy\" OR \"lives saved\" OR progress)";
+export { POSITIVE_NEWS_TERMS, DEFAULT_WEB_SEARCH_TOPIC } from "./editorial-focus";
 
 export function buildRegionalSearchQuery(
   region: FocusRegion,
@@ -75,8 +79,6 @@ export function buildRegionalSearchQuery(
   const topic = topicHint?.trim()
     ? `(${topicHint.trim()})`
     : POSITIVE_NEWS_TERMS;
-  return `${topic} (${region.queryTerms})`;
+  // when:7d keeps results to the last week from newspapers and news sites.
+  return `${topic} (${region.queryTerms}) ${GOOGLE_NEWS_RECENCY}`;
 }
-
-export const DEFAULT_WEB_SEARCH_TOPIC =
-  "good news breakthrough restoration vaccine renewable accessibility wildlife education";

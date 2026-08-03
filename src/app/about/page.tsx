@@ -9,22 +9,21 @@ export default function AboutPage() {
         <div className="section-head">
           <h1 className="page-title">About Dopa News</h1>
           <p className="lede">
-            Your daily good news. Make people happier by making positive news
-            easier to discover.
+            Your daily good news — recent human stories that lift people up.
           </p>
         </div>
         <div className="article-body">
           <p>
             Dopa News (dopa.news) is the public face of the Good News Platform.
-            We collect inspiring, credible stories of progress from around the
-            world, prepare them with AI assistants, and publish only after human
-            editorial approval.
+            We collect very recent stories from newspapers and news sites:
+            personal triumph, winning against health problems, happy endings,
+            happy family stories, and new energy. AI assistants help prepare
+            candidates; humans approve what goes live.
           </p>
           <p>
             We are not here to publish every cheerful headline. We look for
-            stories that demonstrate real improvement — in health, science,
-            education, environment, community, peace, and more — while rejecting
-            sensationalism, propaganda, and unverified claims.
+            credible, timely stories with real human warmth or progress — and we
+            reject sensationalism, propaganda, and unverified claims.
           </p>
           <p>
             AI assistants help with collection and enrichment. Editors remain
