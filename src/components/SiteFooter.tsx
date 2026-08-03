@@ -13,7 +13,7 @@ export function SiteFooter() {
         <div className="footer-links">
           <Link href="/about">About</Link>
           <Link href="/news">Latest news</Link>
-          <Link href="/admin/news">Editorial desk</Link>
+          <Link href="/admin/add">Editorial desk</Link>
         </div>
       </div>
     </footer>

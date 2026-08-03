@@ -130,7 +130,7 @@ export function CollectButton() {
 
       setMessage(
         articles.length > 0
-          ? `Added ${articles.length} recent news item(s)${regionNote}${channelNote}. Review them below.`
+          ? `Added ${articles.length} recent news item(s)${regionNote}${channelNote}. Open Review News to validate them.`
           : `Search finished with no new items (fetched ${payload.fetched}, accepted ${payload.accepted}). Try another theme or subject.`,
       );
       router.refresh();

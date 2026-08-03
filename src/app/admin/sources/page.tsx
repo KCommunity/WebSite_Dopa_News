@@ -5,7 +5,7 @@ import { getStorageMode, readStore } from "@/lib/store";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Sources · Editorial Desk",
+  title: "Manage News Source · Editorial Desk",
 };
 
 export default async function AdminSourcesPage() {
@@ -14,14 +14,15 @@ export default async function AdminSourcesPage() {
 
   return (
     <AdminShell
-      title="Sources"
-      lede="Recommend and manage trusted outlets used for RSS collection and search fallback. News review is on a separate page."
+      title="Manage News Source"
+      lede="Recommend and manage trusted outlets used for RSS collection and search fallback."
       active="sources"
       notice={
         <>
           <p className="collect-hint">
-            This page is for trusted sources only. Review news on the{" "}
-            <a href="/admin/news">News</a> page.
+            This page is for sources only. Collect on{" "}
+            <a href="/admin/add">Add News</a> and validate on{" "}
+            <a href="/admin/review">Review News</a>.
           </p>
           {storageMode === "memory" ? (
             <p className="form-error">

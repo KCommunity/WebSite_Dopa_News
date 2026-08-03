@@ -1,22 +1,27 @@
 import Link from "next/link";
 
-export function AdminNav({ active }: { active: "news" | "sources" }) {
+export type AdminSection = "add" | "review" | "sources";
+
+const LINKS: Array<{ id: AdminSection; href: string; label: string }> = [
+  { id: "add", href: "/admin/add", label: "Add News" },
+  { id: "review", href: "/admin/review", label: "Review News" },
+  { id: "sources", href: "/admin/sources", label: "Manage News Source" },
+];
+
+export function AdminNav({ active }: { active: AdminSection }) {
   return (
     <nav className="admin-subnav" aria-label="Editorial sections">
-      <Link
-        href="/admin/news"
-        className={active === "news" ? "admin-subnav-link active" : "admin-subnav-link"}
-      >
-        News
-      </Link>
-      <Link
-        href="/admin/sources"
-        className={
-          active === "sources" ? "admin-subnav-link active" : "admin-subnav-link"
-        }
-      >
-        Sources
-      </Link>
+      {LINKS.map((link) => (
+        <Link
+          key={link.id}
+          href={link.href}
+          className={
+            active === link.id ? "admin-subnav-link active" : "admin-subnav-link"
+          }
+        >
+          {link.label}
+        </Link>
+      ))}
     </nav>
   );
 }

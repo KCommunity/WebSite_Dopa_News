@@ -57,7 +57,7 @@ export function ManualNewsForm() {
       setSourceName("");
       setSourceUrl("");
       setKeywords("");
-      setMessage("News added to the validation queue below.");
+      setMessage("News added. Open Review News to validate it.");
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not add news");

@@ -281,6 +281,23 @@ export async function listPublishedArticles(): Promise<Article[]> {
     .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""));
 }
 
+/** All articles for the editorial review desk (pending first). */
+export async function listAllArticlesForReview(): Promise<Article[]> {
+  const store = await readStore();
+  const rank = (status: EditorialStatus) => {
+    if (status === "pending_validation") return 0;
+    if (status === "published") return 1;
+    if (status === "rejected") return 3;
+    return 2;
+  };
+
+  return [...store.articles].sort((a, b) => {
+    const byStatus = rank(a.status) - rank(b.status);
+    if (byStatus !== 0) return byStatus;
+    return b.collectedAt.localeCompare(a.collectedAt);
+  });
+}
+
 export async function listArticlesByStatus(status: EditorialStatus): Promise<Article[]> {
   const store = await readStore();
   return store.articles

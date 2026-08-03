@@ -9,9 +9,9 @@ import {
   useState,
 } from "react";
 import {
+  mergeIntoLocalPendingQueue,
   mergeServerAndLocalPending,
   removeFromLocalPendingQueue,
-  writeLocalPendingQueue,
 } from "@/lib/pending-queue";
 import type { Article } from "@/lib/types";
 
@@ -58,20 +58,10 @@ export function PendingQueueProvider({
   }, [serverPending, publishedCount, totalCount]);
 
   const addPending = useCallback((articles: Article[]) => {
-    setPending((current) => {
-      const byId = new Map<string, Article>();
-      for (const article of [...articles, ...current]) {
-        if (article.status !== "pending_validation") continue;
-        byId.set(article.id, article);
-      }
-      const merged = [...byId.values()].sort((a, b) =>
-        b.collectedAt.localeCompare(a.collectedAt),
-      );
-      writeLocalPendingQueue(merged);
-      return merged;
-    });
+    const merged = mergeIntoLocalPendingQueue(articles);
+    setPending(merged);
     setStats((current) => ({
-      pendingServer: current.pendingServer + articles.length,
+      pendingServer: Math.max(current.pendingServer, merged.length),
       published: current.published,
       total: current.total + articles.length,
     }));

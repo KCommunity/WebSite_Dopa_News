@@ -1,4 +1,4 @@
-import { AdminNav } from "@/components/AdminNav";
+import { AdminNav, type AdminSection } from "@/components/AdminNav";
 
 export function AdminShell({
   title,
@@ -9,18 +9,18 @@ export function AdminShell({
 }: {
   title: string;
   lede: string;
-  active: "news" | "sources";
+  active: AdminSection;
   children: React.ReactNode;
   notice?: React.ReactNode;
 }) {
   return (
     <section className="admin-page">
       <div className="shell">
+        <AdminNav active={active} />
         <div className="section-head">
           <p className="admin-kicker">Editorial desk</p>
           <h1 className="page-title">{title}</h1>
           <p className="lede">{lede}</p>
-          <AdminNav active={active} />
           {notice}
         </div>
         {children}
