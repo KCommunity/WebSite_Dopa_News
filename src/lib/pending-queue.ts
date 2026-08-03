@@ -16,7 +16,11 @@ export function readLocalPendingQueue(): Article[] {
 
 export function writeLocalPendingQueue(articles: Article[]): void {
   if (typeof window === "undefined") return;
-  window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(articles));
+  try {
+    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(articles));
+  } catch {
+    // Ignore quota / private-mode failures.
+  }
 }
 
 export function mergeIntoLocalPendingQueue(articles: Article[]): Article[] {

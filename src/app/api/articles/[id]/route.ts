@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { updateArticleContent, updateArticleStatus } from "@/lib/store";
+import {
+  ensureArticleInStore,
+  updateArticleContent,
+  updateArticleStatus,
+} from "@/lib/store";
 import { TAXONOMY } from "@/lib/taxonomy";
+import type { Article } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -20,12 +25,38 @@ const sourceSchema = z.object({
   reliability: z.number().min(0).max(1).optional(),
 });
 
+const articleSnapshotSchema = z.object({
+  id: z.string().min(1),
+  slug: z.string().min(1),
+  title: z.string().min(1),
+  summary: z.string().min(1),
+  body: z.string().min(1),
+  category: z.enum(categorySlugs),
+  status: z.string(),
+  sourceId: z.string(),
+  sourceName: z.string(),
+  sourceUrl: z.string(),
+  sources: z.array(sourceSchema).optional(),
+  originalLanguage: z.string(),
+  country: z.string().optional(),
+  keywords: z.array(z.string()),
+  impactScore: z.number(),
+  credibilityScore: z.number(),
+  explainability: z.string(),
+  collectedAt: z.string(),
+  processedAt: z.string().optional(),
+  discoveryMethod: z.enum(["rss", "web_search", "seed", "manual"]).optional(),
+  searchQuery: z.string().optional(),
+});
+
 const bodySchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("publish"),
+    article: articleSnapshotSchema.optional(),
   }),
   z.object({
     action: z.literal("reject"),
+    article: articleSnapshotSchema.optional(),
   }),
   z.object({
     action: z.literal("update"),
@@ -39,6 +70,7 @@ const bodySchema = z.discriminatedUnion("action", [
     impactScore: z.number().min(0).max(100),
     credibilityScore: z.number().min(0).max(100),
     sources: z.array(sourceSchema).min(1).max(12),
+    article: articleSnapshotSchema.optional(),
   }),
 ]);
 
@@ -53,6 +85,10 @@ export async function PATCH(request: Request, { params }: Props) {
     const json = await request.json();
     const payload = bodySchema.parse(json);
 
+    if (payload.article && payload.article.id === id) {
+      await ensureArticleInStore(payload.article as Article);
+    }
+
     if (payload.action === "publish" || payload.action === "reject") {
       const status = payload.action === "publish" ? "published" : "rejected";
       const article = await updateArticleStatus(id, status, {
@@ -60,7 +96,13 @@ export async function PATCH(request: Request, { params }: Props) {
       });
 
       if (!article) {
-        return NextResponse.json({ error: "Article not found" }, { status: 404 });
+        return NextResponse.json(
+          {
+            error:
+              "Article not found on the server. Search again, or connect Vercel Blob for durable storage.",
+          },
+          { status: 404 },
+        );
       }
 
       return NextResponse.json({ ok: true, article });
@@ -80,7 +122,13 @@ export async function PATCH(request: Request, { params }: Props) {
     });
 
     if (!article) {
-      return NextResponse.json({ error: "Article not found" }, { status: 404 });
+      return NextResponse.json(
+        {
+          error:
+            "Article not found on the server. Search again, or connect Vercel Blob for durable storage.",
+        },
+        { status: 404 },
+      );
     }
 
     return NextResponse.json({ ok: true, article });

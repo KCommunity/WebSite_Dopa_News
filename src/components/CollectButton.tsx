@@ -7,11 +7,12 @@ import {
   FOCUS_REGIONS,
   type FocusRegionId,
 } from "@/lib/regions";
-import { mergeIntoLocalPendingQueue } from "@/lib/pending-queue";
+import { usePendingQueue } from "@/components/PendingQueueProvider";
 import type { Article } from "@/lib/types";
 
 export function CollectButton() {
   const router = useRouter();
+  const { addPending } = usePendingQueue();
   const [busy, setBusy] = useState<"rss" | "web" | null>(null);
   const [query, setQuery] = useState(DEFAULT_WEB_SEARCH_TOPIC);
   const [maxResults, setMaxResults] = useState(5);
@@ -43,11 +44,12 @@ export function CollectButton() {
         fetched?: number;
         accepted?: number;
         added?: number;
-        merged?: number;
+        articles?: Article[];
       };
       if (!response.ok) throw new Error(payload.error || "Collection failed");
+      if (payload.articles?.length) addPending(payload.articles);
       setMessage(
-        `RSS: fetched ${payload.fetched}, accepted ${payload.accepted}, added ${payload.added}, merged sources on ${payload.merged}.`,
+        `RSS: fetched ${payload.fetched}, accepted ${payload.accepted}, added ${payload.added ?? payload.articles?.length ?? 0}.`,
       );
       router.refresh();
     } catch (err) {
@@ -77,37 +79,33 @@ export function CollectButton() {
         fetched?: number;
         accepted?: number;
         added?: number;
-        merged?: number;
-        query?: string;
-        regions?: string[];
-        maxResults?: number;
         channel?: string;
-        storageMode?: string;
+        regions?: string[];
         articles?: Article[];
       };
       if (!response.ok) throw new Error(payload.error || "Internet search failed");
 
-      if (payload.articles?.length) {
-        mergeIntoLocalPendingQueue(payload.articles);
-        window.dispatchEvent(new Event("dopa-pending-updated"));
+      const articles = payload.articles ?? [];
+      if (articles.length) {
+        addPending(articles);
       }
 
-      const added = payload.added ?? payload.articles?.length ?? 0;
+      const regionNote = payload.regions?.length
+        ? ` in ${payload.regions.join(", ")}`
+        : "";
       const channelNote =
         payload.channel === "trusted_rss"
-          ? " (trusted RSS)"
+          ? " (trusted RSS fallback)"
           : payload.channel === "mixed"
             ? " (Google News + trusted RSS)"
-            : "";
-      const storageNote =
-        payload.storageMode === "memory"
-          ? " Results are kept in this browser session until durable storage (Vercel Blob) is connected."
-          : "";
+            : payload.channel === "google_news"
+              ? " (Google News)"
+              : "";
 
       setMessage(
-        added > 0
-          ? `Added ${added} news item(s) to the validation queue${channelNote}. Max ${payload.maxResults}. Fetched ${payload.fetched}, accepted ${payload.accepted}.${storageNote}`
-          : `Search finished${channelNote}, but no new queue items were created (fetched ${payload.fetched}, accepted ${payload.accepted}, merged ${payload.merged}).${storageNote}`,
+        articles.length > 0
+          ? `Added ${articles.length} news item(s)${regionNote}${channelNote}. Review them in the validation queue below.`
+          : `Search finished with no new items (fetched ${payload.fetched}, accepted ${payload.accepted}). Try another subject.`,
       );
       router.refresh();
     } catch (err) {
@@ -126,7 +124,7 @@ export function CollectButton() {
       </div>
 
       <form className="web-search-form" onSubmit={collectWeb}>
-        <label htmlFor="web-query">Internet search (site assistants)</label>
+        <label htmlFor="web-query">Internet search by subject</label>
         <div className="region-chips" role="group" aria-label="Focus regions">
           {FOCUS_REGIONS.map((region) => {
             const active = regions.includes(region.id);
@@ -148,7 +146,7 @@ export function CollectButton() {
             id="web-query"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Optional topic, e.g. vaccine OR solar OR education"
+            placeholder="Subject, e.g. solar energy OR vaccine"
             disabled={busy !== null}
           />
           <label className="max-results-field" htmlFor="max-results">
@@ -168,8 +166,9 @@ export function CollectButton() {
           </button>
         </div>
         <p className="collect-hint">
-          Searches Google News for positive progress in selected regions (default
-          max 5). If Google News is blocked, falls back to trusted RSS feeds.
+          Searches Google News for each selected region and your subject, then
+          fills gaps from trusted RSS. New items appear in the validation queue
+          below — edit, then publish the ones you like.
         </p>
       </form>
 

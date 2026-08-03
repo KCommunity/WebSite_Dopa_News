@@ -2,12 +2,13 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { mergeIntoLocalPendingQueue } from "@/lib/pending-queue";
+import { usePendingQueue } from "@/components/PendingQueueProvider";
 import { TAXONOMY } from "@/lib/taxonomy";
 import type { Article, CategorySlug } from "@/lib/types";
 
 export function ManualNewsForm() {
   const router = useRouter();
+  const { addPending } = usePendingQueue();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -46,8 +47,7 @@ export function ManualNewsForm() {
       if (!response.ok) throw new Error(payload.error || "Could not add news");
 
       if (payload.article) {
-        mergeIntoLocalPendingQueue([payload.article]);
-        window.dispatchEvent(new Event("dopa-pending-updated"));
+        addPending([payload.article]);
       }
 
       setTitle("");
@@ -57,7 +57,7 @@ export function ManualNewsForm() {
       setSourceName("");
       setSourceUrl("");
       setKeywords("");
-      setMessage("News added to the validation queue.");
+      setMessage("News added to the validation queue below.");
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not add news");
@@ -73,8 +73,8 @@ export function ManualNewsForm() {
           Add news for review
         </h2>
         <p className="lede">
-          Manually submit a story to the validation queue. Useful when internet
-          search only finds sources, or when you have a tip from a trusted outlet.
+          Manually submit a story to the validation queue when you have a tip
+          from a trusted outlet.
         </p>
       </div>
 

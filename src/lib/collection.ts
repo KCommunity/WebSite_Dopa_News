@@ -21,10 +21,10 @@ import {
 } from "./regions";
 import { getCategoryName } from "./taxonomy";
 import type { Article, ArticleSource, Source } from "./types";
-import { upsertArticles } from "./store";
+import { readStore, upsertArticles } from "./store";
 
 const parser = new Parser({
-  timeout: 15000,
+  timeout: 10000,
   headers: {
     "User-Agent": "DopaNews/0.1 (+https://dopa.news)",
   },
@@ -90,6 +90,20 @@ function splitTitleAndPublisher(rawTitle: string): { title: string; publisher?: 
   };
 }
 
+function queryTerms(query: string): string[] {
+  return query
+    .toLowerCase()
+    .split(/\s+or\s+|[\s,]+/i)
+    .map((term) => term.replace(/[()"/]/g, "").trim())
+    .filter((term) => term.length > 2);
+}
+
+function matchesTopic(title: string, summary: string, terms: string[]): boolean {
+  if (terms.length === 0) return true;
+  const haystack = `${title} ${summary}`.toLowerCase();
+  return terms.some((term) => haystack.includes(term));
+}
+
 function buildArticle(params: {
   title: string;
   summary: string;
@@ -98,6 +112,7 @@ function buildArticle(params: {
   discoveryMethod: Article["discoveryMethod"];
   searchQuery?: string;
   sourceReliability?: number;
+  country?: string;
 }): Article {
   const category = classifyArticle(params.title, params.summary);
   const impactScore = scoreImpact(category, params.title, params.summary);
@@ -109,7 +124,7 @@ function buildArticle(params: {
   const now = new Date().toISOString();
   const sourceNames = params.sources.map((source) => source.name).join(", ");
 
-  const article = applyPrimarySource(
+  return applyPrimarySource(
     {
       id: nanoid(),
       slug: `${slugify(params.title)}-${nanoid(6)}`,
@@ -123,6 +138,7 @@ function buildArticle(params: {
       sourceUrl: "",
       sources: params.sources,
       originalLanguage: "en",
+      country: params.country,
       keywords: extractKeywords(params.title, params.summary),
       impactScore,
       credibilityScore,
@@ -140,8 +156,6 @@ function buildArticle(params: {
     },
     params.sources,
   );
-
-  return article;
 }
 
 export async function collectFromSources(sources: Source[] = DEFAULT_SOURCES): Promise<{
@@ -149,6 +163,7 @@ export async function collectFromSources(sources: Source[] = DEFAULT_SOURCES): P
   accepted: number;
   added: number;
   merged: number;
+  articles: Article[];
 }> {
   let fetched = 0;
   let accepted = 0;
@@ -170,20 +185,18 @@ export async function collectFromSources(sources: Source[] = DEFAULT_SOURCES): P
         const summary = summarize(String(rawSummary));
         if (!looksLikeGoodNews(title, summary)) continue;
 
-        const articleSources = [
-          createArticleSource({
-            id: source.id,
-            name: source.name,
-            url: link,
-            reliability: source.reliability,
-          }),
-        ];
-
         candidates.push(
           buildArticle({
             title,
             summary,
-            sources: articleSources,
+            sources: [
+              createArticleSource({
+                id: source.id,
+                name: source.name,
+                url: link,
+                reliability: source.reliability,
+              }),
+            ],
             collectedAt: item.isoDate || new Date().toISOString(),
             discoveryMethod: "rss",
             sourceReliability: source.reliability,
@@ -197,7 +210,13 @@ export async function collectFromSources(sources: Source[] = DEFAULT_SOURCES): P
   }
 
   const result = await upsertArticles(candidates);
-  return { fetched, accepted, added: result.added, merged: result.merged };
+  return {
+    fetched,
+    accepted,
+    added: result.added,
+    merged: result.merged,
+    articles: result.articles,
+  };
 }
 
 async function fetchGoogleNewsFeed(
@@ -233,7 +252,7 @@ function articleFromFeedItem(
   const sourceUrl =
     (typeof item.source === "object" && item.source?.url) || link;
 
-  const article = buildArticle({
+  return buildArticle({
     title,
     summary,
     sources: [
@@ -248,82 +267,71 @@ function articleFromFeedItem(
     discoveryMethod: "web_search",
     searchQuery,
     sourceReliability: 0.68,
+    country: regionLabel,
   });
-
-  if (regionLabel) {
-    article.country = article.country || regionLabel;
-    article.keywords = [...new Set([...article.keywords, regionLabel.toLowerCase()])];
-  }
-
-  return article;
 }
 
-async function collectFromTrustedRssFallback(
+async function collectFromTrustedRss(
   query: string,
   maxResults: number,
 ): Promise<Article[]> {
-  const { readStore } = await import("./store");
   const store = await readStore();
   const sources = (store.sources.length ? store.sources : DEFAULT_SOURCES).filter(
     (source) => source.enabled !== false && source.feedUrl,
   );
 
-  const terms = query
-    .toLowerCase()
-    .split(/\s+or\s+|[\s,]+/i)
-    .map((term) => term.replace(/[()]/g, "").trim())
-    .filter((term) => term.length > 2);
-
+  const terms = queryTerms(query);
   const candidates: Article[] = [];
 
-  for (const source of sources) {
-    if (candidates.length >= maxResults) break;
-    try {
-      const feed = await parser.parseURL(source.feedUrl!);
-      for (const item of (feed.items ?? []).slice(0, 20) as FeedItem[]) {
-        if (candidates.length >= maxResults) break;
-        const title = item.title?.trim();
-        const link = item.link?.trim();
-        if (!title || !link) continue;
-        const rawSummary = item.contentSnippet || item.summary || item.content || title;
-        const summary = summarize(String(rawSummary));
-        const haystack = `${title} ${summary}`.toLowerCase();
-        const matchesQuery =
-          terms.length === 0 || terms.some((term) => haystack.includes(term));
-        if (!matchesQuery || !looksLikeGoodNews(title, summary)) continue;
+  await Promise.all(
+    sources.map(async (source) => {
+      try {
+        const feed = await parser.parseURL(source.feedUrl!);
+        for (const item of (feed.items ?? []).slice(0, 25) as FeedItem[]) {
+          const title = item.title?.trim();
+          const link = item.link?.trim();
+          if (!title || !link) continue;
+          const rawSummary = item.contentSnippet || item.summary || item.content || title;
+          const summary = summarize(String(rawSummary));
+          if (!looksLikeGoodNews(title, summary) && !looksLikeWebSearchCandidate(title, summary)) {
+            continue;
+          }
+          // Topic filter is strict for RSS fallback so subject search stays relevant.
+          if (!matchesTopic(title, summary, terms)) continue;
 
-        candidates.push(
-          buildArticle({
-            title,
-            summary,
-            sources: [
-              createArticleSource({
-                id: source.id,
-                name: source.name,
-                url: link,
-                reliability: source.reliability,
-              }),
-            ],
-            collectedAt: item.isoDate || new Date().toISOString(),
-            discoveryMethod: "web_search",
-            searchQuery: query,
-            sourceReliability: source.reliability,
-          }),
-        );
+          candidates.push(
+            buildArticle({
+              title,
+              summary,
+              sources: [
+                createArticleSource({
+                  id: source.id,
+                  name: source.name,
+                  url: link,
+                  reliability: source.reliability,
+                }),
+              ],
+              collectedAt: item.isoDate || new Date().toISOString(),
+              discoveryMethod: "web_search",
+              searchQuery: query,
+              sourceReliability: source.reliability,
+            }),
+          );
+        }
+      } catch (error) {
+        console.error(`Trusted RSS search failed for ${source.name}:`, error);
       }
-    } catch (error) {
-      console.error(`Trusted RSS fallback failed for ${source.name}:`, error);
-    }
-  }
+    }),
+  );
 
-  return candidates;
+  return candidates.slice(0, maxResults * 3);
 }
 
 function dedupeCandidates(articles: Article[]): Article[] {
   const seen = new Set<string>();
   const unique: Article[] = [];
   for (const article of articles) {
-    const key = `${article.title.toLowerCase()}|${article.sourceUrl}`;
+    const key = article.title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
     if (seen.has(key)) continue;
     seen.add(key);
     unique.push(article);
@@ -332,8 +340,7 @@ function dedupeCandidates(articles: Article[]): Article[] {
 }
 
 /**
- * Internet search via Google News + trusted RSS (always).
- * Results enter the editorial queue as pending_validation.
+ * Internet search: Google News by selected regions first, trusted RSS as fallback.
  */
 export async function collectFromWebSearch(
   query: string,
@@ -357,52 +364,67 @@ export async function collectFromWebSearch(
   );
 
   let fetched = 0;
-  const googleCandidates: Article[] = [];
-  const errors: string[] = [];
+  let googleCandidates: Article[] = [];
+  let rssCandidates: Article[] = [];
 
-  for (const region of selectedRegions) {
-    if (googleCandidates.length >= limit) break;
-    const searchQuery = buildRegionalSearchQuery(region, cleaned);
-    const locale = region.locales[0];
+  // 1) Google News for EVERY selected region (parallel) — this is what region chips control.
+  const perRegion = Math.max(2, Math.ceil(limit / Math.max(1, selectedRegions.length)) + 1);
+  const settled = await Promise.allSettled(
+    selectedRegions.map(async (region) => {
+      const searchQuery = buildRegionalSearchQuery(region, cleaned);
+      const items = await fetchGoogleNewsFeed(searchQuery, region.locales[0]);
+      return items.slice(0, perRegion).map((item) =>
+        articleFromFeedItem(item, cleaned, region.label),
+      );
+    }),
+  );
 
-    try {
-      const items = await fetchGoogleNewsFeed(searchQuery, locale);
-      for (const item of items.slice(0, limit * 2)) {
-        if (googleCandidates.length >= limit) break;
-        fetched += 1;
-        const article = articleFromFeedItem(item, cleaned, region.label);
-        if (!article) continue;
-        googleCandidates.push(article);
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "unknown error";
-      console.error(`Web search failed for ${region.label}:`, error);
-      errors.push(`${region.label}: ${message}`);
+  for (const result of settled) {
+    if (result.status !== "fulfilled") {
+      console.error("Google News region fetch failed:", result.reason);
+      continue;
+    }
+    for (const article of result.value) {
+      if (!article) continue;
+      googleCandidates.push(article);
+      fetched += 1;
     }
   }
 
-  // Always also scan trusted RSS so search works when Google News is blocked.
-  const rssCandidates = await collectFromTrustedRssFallback(cleaned, limit);
-  fetched += rssCandidates.length;
+  let candidates = dedupeCandidates(googleCandidates).slice(0, limit);
 
-  const candidates = dedupeCandidates([
-    ...googleCandidates,
-    ...rssCandidates,
-  ]).slice(0, limit);
-
-  if (candidates.length === 0 && errors.length > 0) {
-    throw new Error(
-      `Internet search failed for all regions. ${errors.slice(0, 2).join(" | ")}`,
-    );
+  // 2) Fill gaps from trusted RSS (topic-matched), still tagged with search query.
+  if (candidates.length < limit) {
+    rssCandidates = await collectFromTrustedRss(cleaned, limit);
+    fetched += rssCandidates.length;
+    candidates = dedupeCandidates([...candidates, ...rssCandidates]).slice(0, limit);
   }
 
   if (candidates.length === 0) {
     throw new Error(
-      "No candidate news found. Try another topic, or use Add news for review.",
+      "No candidate news found for that subject/region. Try a broader topic, fewer region filters, or Add news for review.",
     );
   }
 
-  const result = await upsertArticles(candidates);
+  let added = 0;
+  let merged = 0;
+  let stored = candidates;
+
+  try {
+    const result = await upsertArticles(candidates);
+    added = result.added;
+    merged = result.merged;
+    // Prefer persisted rows; if upsert skipped (already published), still surface new pending ones.
+    const pendingTouched = result.articles.filter(
+      (article) => article.status === "pending_validation",
+    );
+    stored = pendingTouched.length > 0 ? pendingTouched : candidates;
+  } catch (error) {
+    console.error("Persist after search failed; returning candidates anyway:", error);
+    added = candidates.length;
+    stored = candidates;
+  }
+
   const channel =
     googleCandidates.length > 0 && rssCandidates.length > 0
       ? "mixed"
@@ -413,13 +435,13 @@ export async function collectFromWebSearch(
   return {
     fetched,
     accepted: candidates.length,
-    added: result.added,
-    merged: result.merged,
+    added,
+    merged,
     query: cleaned,
     regions: selectedRegions.map((region) => region.label),
     maxResults: limit,
     channel,
-    articles: result.articles.filter((article) => article.status === "pending_validation"),
+    articles: stored,
   };
 }
 

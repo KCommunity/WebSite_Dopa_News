@@ -1,43 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { AdminArticleEditor } from "@/components/AdminArticleEditor";
+import { usePendingQueue } from "@/components/PendingQueueProvider";
 import { formatDate } from "@/lib/format";
-import {
-  mergeServerAndLocalPending,
-  removeFromLocalPendingQueue,
-} from "@/lib/pending-queue";
 import { getArticleSources } from "@/lib/sources";
 import { getCategoryName } from "@/lib/taxonomy";
-import type { Article } from "@/lib/types";
 
-export function ValidationQueue({
-  serverPending,
-}: {
-  serverPending: Article[];
-}) {
-  const [pending, setPending] = useState<Article[]>(serverPending);
+export function ValidationQueue() {
+  const { pending, resolvePending } = usePendingQueue();
 
-  useEffect(() => {
-    setPending(mergeServerAndLocalPending(serverPending));
-
-    function onQueueUpdated() {
-      setPending(mergeServerAndLocalPending(serverPending));
-    }
-
-    window.addEventListener("dopa-pending-updated", onQueueUpdated);
-    return () => window.removeEventListener("dopa-pending-updated", onQueueUpdated);
-  }, [serverPending]);
-
-  function handleResolved(id: string) {
-    removeFromLocalPendingQueue(id);
-    setPending((current) => current.filter((article) => article.id !== id));
-  }
 
   return (
     <div className="admin-queue" style={{ marginTop: "2.5rem" }}>
       <h2 className="page-title" style={{ fontSize: "1.8rem" }}>
-        Validation queue
+        Validation queue ({pending.length})
       </h2>
       {pending.length === 0 ? (
         <p className="empty-state">
@@ -67,7 +43,7 @@ export function ValidationQueue({
             ) : null}
             <AdminArticleEditor
               article={article}
-              onResolved={() => handleResolved(article.id)}
+              onResolved={(outcome) => resolvePending(article.id, outcome)}
             />
           </article>
         ))

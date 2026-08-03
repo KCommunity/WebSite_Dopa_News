@@ -25,7 +25,7 @@ export function AdminArticleEditor({
   onResolved,
 }: {
   article: Article;
-  onResolved?: () => void;
+  onResolved?: (outcome: "published" | "rejected") => void;
 }) {
   const router = useRouter();
   const initialSources = useMemo(
@@ -110,7 +110,7 @@ export function AdminArticleEditor({
     const response = await fetch(`/api/articles/${article.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...payload, article }),
     });
     const data = (await response.json()) as { error?: string };
     if (!response.ok) throw new Error(data.error || "Save failed");
@@ -148,11 +148,11 @@ export function AdminArticleEditor({
       const response = await fetch(`/api/articles/${article.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, article }),
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error || "Action failed");
-      onResolved?.();
+      onResolved?.(action === "publish" ? "published" : "rejected");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Action failed");

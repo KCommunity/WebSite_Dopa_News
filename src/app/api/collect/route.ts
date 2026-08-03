@@ -9,6 +9,7 @@ import { FOCUS_REGIONS } from "@/lib/regions";
 import { getStorageMode, readStore, writeStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const regionIds = FOCUS_REGIONS.map((region) => region.id) as [
   (typeof FOCUS_REGIONS)[number]["id"],

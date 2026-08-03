@@ -21,10 +21,15 @@ declare global {
   // eslint-disable-next-line no-var
   var __dopaStoreCache: StoreData | undefined;
   // eslint-disable-next-line no-var
+  var __dopaStoreLoadedAt: number | undefined;
+  // eslint-disable-next-line no-var
   var __dopaStoreSha: string | undefined;
   // eslint-disable-next-line no-var
   var __dopaBlobUrl: string | undefined;
 }
+
+/** Short TTL so multi-instance / durable backends see fresh publishes. */
+const CACHE_TTL_MS = 2_000;
 
 function normalizeTitle(title: string): string {
   return title
@@ -193,11 +198,22 @@ async function writeToFile(data: StoreData): Promise<void> {
 }
 
 async function loadStore(): Promise<StoreData> {
-  if (globalThis.__dopaStoreCache) {
+  const mode = detectStorageMode();
+  const now = Date.now();
+  const cacheAge = now - (globalThis.__dopaStoreLoadedAt ?? 0);
+  const cacheFresh =
+    Boolean(globalThis.__dopaStoreCache) && cacheAge < CACHE_TTL_MS;
+
+  // Memory mode has no durable backend — keep the in-process cache.
+  if (mode === "memory" && globalThis.__dopaStoreCache) {
     return globalThis.__dopaStoreCache;
   }
 
-  const mode = detectStorageMode();
+  // File/blob/github: re-read often so publishes show up on other requests.
+  if (cacheFresh && globalThis.__dopaStoreCache) {
+    return globalThis.__dopaStoreCache;
+  }
+
   let data: StoreData | null = null;
 
   if (mode === "blob") {
@@ -208,21 +224,25 @@ async function loadStore(): Promise<StoreData> {
       data = github.data;
       globalThis.__dopaStoreSha = github.sha;
     }
-  } else {
+  } else if (mode === "file") {
     data = await readFromFile();
+  } else {
+    data = (await readFromFile()) ?? globalThis.__dopaStoreCache ?? null;
   }
 
   if (!data) {
-    data = await readSeed();
+    data = globalThis.__dopaStoreCache ?? (await readSeed());
   }
 
   globalThis.__dopaStoreCache = data;
+  globalThis.__dopaStoreLoadedAt = now;
   return data;
 }
 
 async function persist(data: StoreData): Promise<void> {
   data.updatedAt = new Date().toISOString();
   globalThis.__dopaStoreCache = data;
+  globalThis.__dopaStoreLoadedAt = Date.now();
 
   const mode = detectStorageMode();
   if (mode === "blob") {
@@ -403,6 +423,24 @@ export async function createPendingArticle(input: {
   store.articles.unshift(article);
   await persist(store);
   return article;
+}
+
+/**
+ * Re-insert a client-held article when the server store lost it
+ * (common in Vercel memory mode across instances).
+ */
+export async function ensureArticleInStore(article: Article): Promise<Article> {
+  const store = await readStore();
+  const existing = store.articles.find((item) => item.id === article.id);
+  if (existing) return existing;
+
+  const restored = applyPrimarySource(article, getArticleSources(article));
+  if (restored.status === "published" || restored.status === "rejected") {
+    restored.status = "pending_validation";
+  }
+  store.articles.unshift(restored);
+  await persist(store);
+  return restored;
 }
 
 export async function updateArticleStatus(

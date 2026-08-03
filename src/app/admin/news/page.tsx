@@ -1,6 +1,8 @@
+import { AdminDeskStats } from "@/components/AdminDeskStats";
 import { AdminShell } from "@/components/AdminShell";
 import { CollectButton } from "@/components/CollectButton";
 import { ManualNewsForm } from "@/components/ManualNewsForm";
+import { PendingQueueProvider } from "@/components/PendingQueueProvider";
 import { ValidationQueue } from "@/components/ValidationQueue";
 import {
   getStorageMode,
@@ -26,51 +28,36 @@ export default async function AdminNewsPage() {
   return (
     <AdminShell
       title="News"
-      lede="Collect, review, and publish good news. AI assistants prepare candidates — humans approve."
+      lede="Search the internet for a subject, review candidates, then publish the ones you approve."
       active="news"
       notice={
         <>
           <p className="collect-hint">
-            This page is for news only. Manage trusted outlets on the{" "}
-            <a href="/admin/sources">Sources</a> page.
-          </p>
-          <p className="collect-hint">
-            News are not collected automatically every day yet. Use RSS
-            collection, internet search, or add a story manually below.
+            Flow: Search & collect → edit in the validation queue → Approve &
+            publish. Manage outlets on{" "}
+            <a href="/admin/sources">Sources</a>.
           </p>
           {storageMode === "memory" ? (
             <p className="form-error">
-              Durable storage is not configured on this host. Search results are
-              kept in your browser session for this visit. For permanent storage
-              on Vercel: Storage → create Blob → connect to this project, then
-              redeploy.
+              Server storage is temporary on this host. For permanent storage:
+              Vercel → Storage → Blob → connect this project → redeploy.
             </p>
           ) : null}
         </>
       }
     >
-      <div className="stats-row">
-        <div>
-          <strong>{pending.length}</strong>
-          Pending on server
+      <PendingQueueProvider
+        serverPending={pending}
+        publishedCount={published.length}
+        totalCount={store.articles.length}
+      >
+        <AdminDeskStats />
+        <CollectButton />
+        <div style={{ marginTop: "3rem" }}>
+          <ManualNewsForm />
         </div>
-        <div>
-          <strong>{published.length}</strong>
-          Published
-        </div>
-        <div>
-          <strong>{store.articles.length}</strong>
-          In knowledge base
-        </div>
-      </div>
-
-      <CollectButton />
-
-      <div style={{ marginTop: "3rem" }}>
-        <ManualNewsForm />
-      </div>
-
-      <ValidationQueue serverPending={pending} />
+        <ValidationQueue />
+      </PendingQueueProvider>
     </AdminShell>
   );
 }
